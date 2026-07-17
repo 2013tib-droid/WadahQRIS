@@ -712,11 +712,14 @@ function toBlob(dataUrl){
 window.unduh = id => {
   const i=items.find(x=>x.id===id); if(!i) return;
   try{
+    // Wajib blob: URL — atribut download diabaikan pada data: URL di Safari iOS.
+    const url=URL.createObjectURL(toBlob(i.dataUrl));
     const a=document.createElement("a");
-    a.href=i.dataUrl;
+    a.href=url;
     a.download=`QRIS-${slug(i.name)}${i.city?"-"+slug(i.city):""}.jpg`;
     document.body.appendChild(a); a.click(); a.remove();
-    toast("QRIS tersimpan di perangkatmu","ok");
+    setTimeout(()=>URL.revokeObjectURL(url),60000);
+    toast("QRIS diunduh — cek folder Unduhan","ok");
   }catch(e){ console.error(e); toast("Gagal mengunduh","err") }
 };
 window.bagikan = async id => {
