@@ -1,0 +1,129 @@
+rules_version = '2';
+
+// ══════════════════════════════════════════════════════════════
+//  WadahQRIS — Firestore Security Rules
+//  Paste ke: Firebase Console → Firestore Database → Rules → Publish
+//
+//  Inti: keamanan ditegakkan DI SINI, di server.
+//  Apa pun yang orang lakukan di browser (console, View Source,
+//  edit HTML) tidak bisa menembus aturan ini.
+// ══════════════════════════════════════════════════════════════
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── GANTI dengan UID admin kamu ──────────────────────────
+    // Ambil dari: Firebase Console → Authentication → Users → kolom "User UID"
+    // Boleh lebih dari satu kalau pengurusnya banyak.
+    function isAdmin() {
+      return request.auth != null
+          && request.auth.uid in [
+               'GANTI_DENGAN_UID_ADMIN'
+             ];
+    }
+
+    match /qris/{docId} {
+
+      // ── BACA ────────────────────────────────────────────────
+      // Publik hanya boleh melihat yang sudah disetujui.
+      // Antrean 'pending' tidak bisa diintip siapa pun.
+      allow read: if isAdmin() || resource.data.status == 'approved';
+
+      // ── UPLOAD (create) ─────────────────────────────────────
+      // Siapa saja boleh menitipkan — tapi dengan syarat ketat.
+      allow create: if
+        // Wajib masuk antrean. Tidak ada yang bisa langsung menerbitkan.
+        request.resource.data.status == 'pending'
+
+        // Field yang diizinkan — persis ini, tidak boleh ada tambahan.
+        && request.resource.data.keys().hasOnly([
+             'name','category','city','district','address',
+             'dataUrl','photoUrl','status','uploadedAt'
+           ])
+
+        // Wajib ada dan bertipe benar
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 2
+        && request.resource.data.name.size() <= 60
+
+        && request.resource.data.category in ['masjid','yayasan','umkm','lainnya']
+
+        && request.resource.data.city is string
+        && request.resource.data.city.size() >= 2
+        && request.resource.data.city.size() <= 40
+
+        && request.resource.data.district is string
+        && request.resource.data.district.size() <= 40
+
+        && request.resource.data.address is string
+        && request.resource.data.address.size() <= 140
+
+        // Foto QRIS wajib, dan harus benar-benar gambar JPEG base64.
+        // Batas ~400KB mencegah orang menjejalkan file raksasa
+        // dan menghabiskan kuota Firestore kamu.
+        && request.resource.data.dataUrl is string
+        && request.resource.data.dataUrl.matches('^data:image/jpeg;base64,.*')
+        && request.resource.data.dataUrl.size() < 400000
+
+        // Foto pendukung opsional, batas sama
+        && request.resource.data.photoUrl is string
+        && request.resource.data.photoUrl.size() < 400000
+        && (request.resource.data.photoUrl == ''
+            || request.resource.data.photoUrl.matches('^data:image/jpeg;base64,.*'))
+
+        // Timestamp harus dari server, tidak bisa dipalsukan
+        && request.resource.data.uploadedAt == request.time;
+
+      // ── UPDATE (setujui / perbaiki data) ────────────────────
+      // Hanya admin. Dua bentuk perubahan yang diizinkan:
+      //   (a) Setujui  → hanya mengubah 'status' menjadi 'approved'.
+      //   (b) Perbaiki → hanya field teks (nama/kategori/kota/kecamatan/alamat),
+      //                  dengan validasi yang sama seperti saat upload.
+      // Gambar QRIS (dataUrl), foto pendukung, status, dan waktu unggah
+      // TIDAK bisa diubah lewat edit — admin pun tak bisa diam-diam
+      // menukar gambar QRIS-nya.
+      allow update: if isAdmin() && (
+
+        // (a) Setujui
+        (
+          request.resource.data.diff(resource.data)
+            .affectedKeys().hasOnly(['status'])
+          && request.resource.data.status == 'approved'
+        )
+
+        ||
+
+        // (b) Perbaiki data
+        (
+          request.resource.data.diff(resource.data)
+            .affectedKeys().hasOnly(['name','category','city','district','address'])
+
+          && request.resource.data.name is string
+          && request.resource.data.name.size() >= 2
+          && request.resource.data.name.size() <= 60
+
+          && request.resource.data.category in ['masjid','yayasan','umkm','lainnya']
+
+          && request.resource.data.city is string
+          && request.resource.data.city.size() >= 2
+          && request.resource.data.city.size() <= 40
+
+          && request.resource.data.district is string
+          && request.resource.data.district.size() <= 40
+
+          && request.resource.data.address is string
+          && request.resource.data.address.size() <= 140
+        )
+      );
+
+      // ── HAPUS / TOLAK (delete) ──────────────────────────────
+      // Hanya admin. Titik.
+      allow delete: if isAdmin();
+    }
+
+    // Semua koleksi lain: tertutup rapat.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

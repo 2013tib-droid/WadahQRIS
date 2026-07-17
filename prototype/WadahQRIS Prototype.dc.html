@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #EDEBE3; }
+    ::-webkit-scrollbar { display: none; }
+  </style>
+  <script type="text/babel" src="./ios-frame.jsx"></script>
+</helmet>
+
+<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:48px 16px;font-family:'Public Sans',sans-serif;box-sizing:border-box">
+  <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.06em;text-transform:uppercase;color:#8A8878">WadahQRIS &middot; Prototype interaktif</div>
+
+  <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402,874">
+
+    <!-- ============ LIST SCREEN ============ -->
+    <sc-if value="{{ isList }}" hint-placeholder-val="{{ true }}">
+      <div data-screen-label="List" style="height:100%;display:flex;flex-direction:column;background:#F8F6F0">
+
+        <div style="flex:1;overflow-y:auto;overflow-x:hidden">
+
+          <!-- sticky modal bar -->
+          <div style="position:sticky;top:0;z-index:5;background:#F0EEE6;padding:56px 16px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #E7E3D8">
+            <div onClick="{{ resetToHome }}" style="width:34px;height:34px;border-radius:999px;background:#FFFFFF;border:1px solid #E2DFD4;position:relative;cursor:pointer">
+              <div style="position:absolute;top:50%;left:50%;width:13px;height:1.6px;background:#4A4840;transform:translate(-50%,-50%) rotate(45deg)"></div>
+              <div style="position:absolute;top:50%;left:50%;width:13px;height:1.6px;background:#4A4840;transform:translate(-50%,-50%) rotate(-45deg)"></div>
+            </div>
+            <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:14px;color:#4A4840">wadahqris</div>
+            <div onClick="{{ toggleMenu }}" style="width:34px;height:34px;border-radius:999px;background:#FFFFFF;border:1px solid #E2DFD4;display:flex;align-items:center;justify-content:center;gap:2.5px;cursor:pointer">
+              <div style="width:3.5px;height:3.5px;border-radius:999px;background:#4A4840"></div>
+              <div style="width:3.5px;height:3.5px;border-radius:999px;background:#4A4840"></div>
+              <div style="width:3.5px;height:3.5px;border-radius:999px;background:#4A4840"></div>
+            </div>
+          </div>
+
+          <sc-if value="{{ menuOpen }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;top:96px;right:16px;z-index:20;background:#FFFFFF;border:1px solid #E7E3D8;border-radius:14px;box-shadow:0 8px 24px rgba(20,20,15,0.12);overflow:hidden;min-width:170px">
+              <div onClick="{{ closeMenu }}" style="padding:13px 16px;font-size:14px;color:#2C2B26;border-bottom:1px solid #EFECE3;cursor:pointer">Tentang WadahQRIS</div>
+              <div onClick="{{ closeMenu }}" style="padding:13px 16px;font-size:14px;color:#2C2B26;cursor:pointer">Bantuan</div>
+            </div>
+          </sc-if>
+
+          <!-- brand row -->
+          <div style="padding:18px 20px 6px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:34px;height:34px;border-radius:10px;background:#E8F0EA;display:flex;align-items:center;justify-content:center">
+                <svg width="18" height="18" viewBox="0 0 18 18"><circle cx="9" cy="6" r="4" fill="#2E6B4F"/><rect x="7.5" y="8" width="3" height="8" rx="1.3" fill="#2E6B4F"/></svg>
+              </div>
+              <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:19px;color:#1C1B17">Wadah<span style="color:#2E6B4F">QRIS</span></div>
+            </div>
+            <div onClick="{{ openAdmin }}" style="position:relative;display:flex;align-items:center;gap:6px;padding:9px 14px;border-radius:999px;border:1px solid #E2DFD4;background:#FFFFFF;cursor:pointer">
+              <svg width="14" height="14" viewBox="0 0 14 14"><circle cx="5" cy="5" r="3.2" fill="none" stroke="#C9812F" stroke-width="1.6"/><rect x="6.6" y="6.6" width="6" height="1.8" rx="0.9" fill="#C9812F" transform="rotate(45 6.6 6.6)"/></svg>
+              <span style="font-size:12.5px;font-weight:600;color:#3A3830">Admin</span>
+              <sc-if value="{{ hasPending }}" hint-placeholder-val="{{ false }}">
+                <div style="position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;border-radius:999px;background:#C9812F;color:#FFFFFF;font-size:9.5px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 3px">{{ pendingCount }}</div>
+              </sc-if>
+            </div>
+          </div>
+
+          <div style="padding:0 20px 16px;font-size:13.5px;line-height:1.55;color:#6B6A63">Setiap wadah bermula dari tangan yang pertama mengisi. Yang kamu titipkan hari ini, mungkin menjadi jalan bagi orang yang belum kamu kenal.</div>
+
+          <!-- category chips -->
+          <div style="display:flex;gap:8px;padding:0 20px 12px;overflow-x:auto">
+            <sc-for list="{{ categories }}" as="cat" hint-placeholder-count="4">
+              <div onClick="{{ cat.onClick }}" style="flex-shrink:0;display:flex;align-items:center;gap:7px;padding:9px 14px;border-radius:999px;cursor:pointer;white-space:nowrap;border-width:1.4px;border-style:solid;border-color:{{ cat.chipBorder }};background:{{ cat.chipBg }};color:{{ cat.chipText }}">
+                <sc-if value="{{ cat.hasIcon }}" hint-placeholder-val="{{ true }}">
+                  <div style="width:14px;height:14px;display:flex;align-items:center;justify-content:center">
+                    <sc-if value="{{ cat.isMasjid }}"><svg width="14" height="14" viewBox="0 0 16 16"><path d="M3 12 v-2.2a5 5 0 0 1 10 0V12" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="2" y="12" width="12" height="1.6" rx="0.6" fill="currentColor"/><circle cx="8" cy="3.2" r="1" fill="currentColor"/></svg></sc-if>
+                    <sc-if value="{{ cat.isYayasan }}"><svg width="14" height="14" viewBox="0 0 16 16"><circle cx="5.6" cy="6" r="3.1" fill="currentColor"/><circle cx="10.4" cy="6" r="3.1" fill="currentColor"/><rect x="4.2" y="5.2" width="7.6" height="7.6" transform="rotate(45 8 9)" fill="currentColor"/></svg></sc-if>
+                    <sc-if value="{{ cat.isUmkm }}"><svg width="14" height="14" viewBox="0 0 16 16"><path d="M5 6.5a3 3 0 0 1 6 0" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="3.2" y="6.2" width="9.6" height="7.6" rx="1.3" fill="currentColor"/></svg></sc-if>
+                    <sc-if value="{{ cat.isLainnya }}"><svg width="14" height="14" viewBox="0 0 16 16"><rect x="4.5" y="4.5" width="7" height="7" transform="rotate(45 8 8)" fill="currentColor"/></svg></sc-if>
+                  </div>
+                </sc-if>
+                <span style="font-size:13px;font-weight:600">{{ cat.label }}</span>
+              </div>
+            </sc-for>
+          </div>
+
+          <!-- city select -->
+          <div style="margin:0 20px 18px;position:relative;display:flex;align-items:center;padding:12px 14px;border-radius:14px;border:1px solid #E2DFD4;background:#FFFFFF">
+            <svg width="15" height="15" viewBox="0 0 15 15" style="margin-right:8px;flex-shrink:0"><circle cx="7.5" cy="5.6" r="3" fill="none" stroke="#2E6B4F" stroke-width="1.5"/><path d="M4 9 L7.5 14 L11 9 Z" fill="#2E6B4F"/></svg>
+            <select value="{{ city }}" onChange="{{ onCityChange }}" style="flex:1;border:none;outline:none;background:transparent;font-size:13.5px;font-weight:500;color:#2C2B26;font-family:'Public Sans',sans-serif;appearance:none">
+              <sc-for list="{{ cities }}" as="c" hint-placeholder-count="5">
+                <option value="{{ c }}">{{ c }}</option>
+              </sc-for>
+            </select>
+            <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid #8A8878;margin-left:8px"></div>
+          </div>
+
+          <!-- list / empty state -->
+          <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:56px 32px 40px;text-align:center;gap:14px">
+              <div style="width:76px;height:76px;border-radius:999px;background:#E8F0EA;display:flex;align-items:center;justify-content:center">
+                <svg width="34" height="34" viewBox="0 0 34 34"><rect x="6" y="12" width="22" height="16" rx="3" fill="none" stroke="#2E6B4F" stroke-width="2"/><path d="M6 16 L17 22 L28 16" fill="none" stroke="#2E6B4F" stroke-width="2" stroke-linejoin="round"/></svg>
+              </div>
+              <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:16px;color:#1C1B17">Wadah ini masih kosong</div>
+              <div style="font-size:13.5px;color:#8A8878;max-width:230px">Belum ada QRIS yang ditemukan untuk filter ini.</div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ hasResults }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;flex-direction:column;gap:10px;padding:0 20px 24px">
+              <sc-for list="{{ filteredList }}" as="w" hint-placeholder-count="3">
+                <div onClick="{{ w.onClick }}" style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:16px;background:#FFFFFF;border:1px solid #EFECE3;cursor:pointer">
+                  <div style="width:44px;height:44px;border-radius:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:{{ w.catBg }};color:{{ w.catColor }}">
+                    <sc-if value="{{ w.isMasjid }}"><svg width="20" height="20" viewBox="0 0 16 16"><path d="M3 12 v-2.2a5 5 0 0 1 10 0V12" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="2" y="12" width="12" height="1.6" rx="0.6" fill="currentColor"/><circle cx="8" cy="3.2" r="1" fill="currentColor"/></svg></sc-if>
+                    <sc-if value="{{ w.isYayasan }}"><svg width="20" height="20" viewBox="0 0 16 16"><circle cx="5.6" cy="6" r="3.1" fill="currentColor"/><circle cx="10.4" cy="6" r="3.1" fill="currentColor"/><rect x="4.2" y="5.2" width="7.6" height="7.6" transform="rotate(45 8 9)" fill="currentColor"/></svg></sc-if>
+                    <sc-if value="{{ w.isUmkm }}"><svg width="20" height="20" viewBox="0 0 16 16"><path d="M5 6.5a3 3 0 0 1 6 0" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="3.2" y="6.2" width="9.6" height="7.6" rx="1.3" fill="currentColor"/></svg></sc-if>
+                    <sc-if value="{{ w.isLainnya }}"><svg width="20" height="20" viewBox="0 0 16 16"><rect x="4.5" y="4.5" width="7" height="7" transform="rotate(45 8 8)" fill="currentColor"/></svg></sc-if>
+                  </div>
+                  <div style="flex:1;min-width:0">
+                    <div style="font-size:14.5px;font-weight:600;color:#1C1B17;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ w.name }}</div>
+                    <div style="font-size:12px;color:#8A8878;margin-top:2px">{{ w.city }}</div>
+                  </div>
+                  <svg width="7" height="12" viewBox="0 0 7 12" style="flex-shrink:0"><path d="M1 1 L6 6 L1 11" stroke="#C9C6BA" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+        </div>
+
+        <div style="padding:14px 20px calc(14px + env(safe-area-inset-bottom));background:#F8F6F0;border-top:1px solid #EFECE3">
+          <div onClick="{{ startAdd }}" style="background:#14140F;color:#FFFFFF;text-align:center;padding:15px;border-radius:999px;font-size:15px;font-weight:600;cursor:pointer">+ Titipkan QRIS</div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ============ DETAIL SCREEN ============ -->
+    <sc-if value="{{ isDetail }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Detail" style="height:100%;display:flex;flex-direction:column;background:#F8F6F0">
+        <div style="flex:1;overflow-y:auto">
+          <div style="position:sticky;top:0;z-index:5;background:#F8F6F0;padding:56px 16px 10px;display:flex;align-items:center;justify-content:space-between">
+            <div onClick="{{ backToList }}" style="width:34px;height:34px;border-radius:999px;background:#FFFFFF;border:1px solid #E2DFD4;display:flex;align-items:center;justify-content:center;cursor:pointer">
+              <svg width="8" height="14" viewBox="0 0 8 14"><path d="M7 1 L1 7 L7 13" stroke="#4A4840" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div style="font-size:13px;font-weight:600;color:#4A4840;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ selectedWadah.name }}</div>
+            <div style="width:34px;height:34px;border-radius:999px;background:#FFFFFF;border:1px solid #E2DFD4;display:flex;align-items:center;justify-content:center">
+              <svg width="14" height="14" viewBox="0 0 14 14"><circle cx="3" cy="7" r="1.8" fill="#4A4840"/><circle cx="11" cy="2.5" r="1.8" fill="#4A4840"/><circle cx="11" cy="11.5" r="1.8" fill="#4A4840"/><path d="M4.6 6.2 L9.4 3.3 M4.6 7.8 L9.4 10.7" stroke="#4A4840" stroke-width="1.3"/></svg>
+            </div>
+          </div>
+
+          <div style="padding:4px 20px 0;display:flex;justify-content:center">
+            <div style="width:200px;height:200px;border-radius:18px;border:1px solid #E2DFD4;background:repeating-linear-gradient(45deg,#EFECE3,#EFECE3 8px,#F7F5EF 8px,#F7F5EF 16px);display:flex;align-items:center;justify-content:center;text-align:center;padding:12px;box-sizing:border-box">
+              <span style="font-family:monospace;font-size:11px;color:#8A8878;line-height:1.5">qris tersimpan<br/>saat pendaftaran</span>
+            </div>
+          </div>
+
+          <div style="padding:16px 20px 0">
+            <div style="display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;background:{{ selectedWadah.catBg }};margin-bottom:10px">
+              <span style="font-size:11.5px;font-weight:700;color:{{ selectedWadah.catColor }}">{{ selectedWadah.catLabel }}</span>
+            </div>
+            <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:21px;color:#1C1B17;line-height:1.25">{{ selectedWadah.name }}</div>
+            <sc-if value="{{ selectedWadah.address }}" hint-placeholder-val="{{ true }}">
+              <div style="font-size:13px;color:#8A8878;margin-top:5px;line-height:1.5">{{ selectedWadah.address }}</div>
+            </sc-if>
+            <div style="display:flex;align-items:center;gap:5px;margin-top:6px">
+              <svg width="12" height="12" viewBox="0 0 15 15"><circle cx="7.5" cy="5.6" r="3" fill="none" stroke="#8A8878" stroke-width="1.5"/><path d="M4 9 L7.5 14 L11 9 Z" fill="#8A8878"/></svg>
+              <span style="font-size:13px;color:#8A8878">{{ selectedWadah.locationLabel }}</span>
+            </div>
+          </div>
+
+          <div style="padding:20px 20px 28px">
+            <div style="font-size:12.5px;font-weight:700;color:#1C1B17;margin-bottom:8px">Foto lokasi/masjid (opsional)</div>
+            <x-import component-from-global-scope="image-slot" from="./image-slot.js" id="venue-{{ selectedWadah.id }}" shape="rounded" radius="16" placeholder="Foto lokasi/masjid" style="width:100%;height:150px;display:block" hint-size="100%,150px"></x-import>
+          </div>
+        </div>
+
+        <div style="padding:14px 20px calc(14px + env(safe-area-inset-bottom));background:#F8F6F0;border-top:1px solid #EFECE3">
+          <div onClick="{{ goToPay }}" style="background:#14140F;color:#FFFFFF;text-align:center;padding:15px;border-radius:999px;font-size:15px;font-weight:600;cursor:pointer">Donasi Sekarang</div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ============ PAY SCREEN ============ -->
+    <sc-if value="{{ isPay }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Donasi" style="height:100%;display:flex;flex-direction:column;background:#F8F6F0">
+        <div style="flex:1;overflow-y:auto">
+          <div style="padding:56px 16px 10px;display:flex;align-items:center;justify-content:space-between">
+            <div onClick="{{ backToDetail }}" style="width:34px;height:34px;border-radius:999px;background:#FFFFFF;border:1px solid #E2DFD4;display:flex;align-items:center;justify-content:center;cursor:pointer">
+              <svg width="8" height="14" viewBox="0 0 8 14"><path d="M7 1 L1 7 L7 13" stroke="#4A4840" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div style="font-size:13px;font-weight:600;color:#4A4840">Donasi</div>
+            <div style="width:34px"></div>
+          </div>
+
+          <div style="padding:6px 20px 0;text-align:center">
+            <div style="font-size:13px;color:#8A8878">Scan QRIS ini lewat e-wallet atau m-banking kamu</div>
+            <div style="margin:16px 0">
+              <div style="width:220px;height:220px;margin:0 auto;border-radius:16px;border:1px solid #E2DFD4;background:repeating-linear-gradient(45deg,#EFECE3,#EFECE3 8px,#F7F5EF 8px,#F7F5EF 16px);display:flex;align-items:center;justify-content:center;text-align:center;padding:12px;box-sizing:border-box">
+                <span style="font-family:monospace;font-size:11px;color:#8A8878;line-height:1.5">qris tersimpan<br/>saat pendaftaran</span>
+              </div>
+            </div>
+            <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:15px;color:#1C1B17">{{ selectedWadah.name }}</div>
+          </div>
+
+          <div style="padding:24px 20px 0">
+            <div style="background:#F0EEE6;border-radius:14px;padding:14px;font-size:12.5px;line-height:1.55;color:#6B6A63">Karena pembayaran langsung lewat QRIS milikmu sendiri, nominal donasi tidak tercatat di aplikasi ini &mdash; cukup bayar sesuai niatmu.</div>
+          </div>
+        </div>
+
+        <div style="padding:14px 20px calc(14px + env(safe-area-inset-bottom));background:#F8F6F0;border-top:1px solid #EFECE3">
+          <div onClick="{{ confirmPay }}" style="background:#14140F;color:#FFFFFF;text-align:center;padding:15px;border-radius:999px;font-size:15px;font-weight:600;cursor:pointer">Saya Sudah Membayar</div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ============ PAY SUCCESS ============ -->
+    <sc-if value="{{ isPaySuccess }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Donasi Berhasil" style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:40px;text-align:center;background:#F8F6F0">
+        <div style="width:72px;height:72px;border-radius:999px;background:#E8F0EA;display:flex;align-items:center;justify-content:center">
+          <svg width="30" height="30" viewBox="0 0 30 30"><circle cx="15" cy="15" r="13" fill="none" stroke="#2E6B4F" stroke-width="2"/><path d="M9 15.5 L13 19.5 L21 10.5" fill="none" stroke="#2E6B4F" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:19px;color:#1C1B17">Terima kasih!</div>
+        <div style="font-size:13.5px;color:#6B6A63;line-height:1.6">Donasimu untuk <strong>{{ selectedWadah.name }}</strong> sudah tercatat. Semoga jadi jalan kebaikan.</div>
+        <div onClick="{{ backToList }}" style="margin-top:6px;background:#14140F;color:#FFFFFF;padding:14px 28px;border-radius:999px;font-size:14px;font-weight:600;cursor:pointer">Kembali ke Beranda</div>
+      </div>
+    </sc-if>
+
+    <!-- ============ ADD STEP 1 ============ -->
+    <sc-if value="{{ isAdd1 }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Titipkan QRIS - 1" style="height:100%;display:flex;flex-direction:column;background:#F8F6F0">
+        <div style="flex:1;overflow-y:auto">
+          <div style="padding:56px 20px 6px;display:flex;align-items:center;justify-content:space-between">
+            <div onClick="{{ resetToHome }}" style="width:34px;height:34px;border-radius:999px;background:#FFFFFF;border:1px solid #E2DFD4;display:flex;align-items:center;justify-content:center;cursor:pointer">
+              <div style="position:relative;width:12px;height:12px">
+                <div style="position:absolute;top:50%;left:50%;width:13px;height:1.6px;background:#4A4840;transform:translate(-50%,-50%) rotate(45deg)"></div>
+                <div style="position:absolute;top:50%;left:50%;width:13px;height:1.6px;background:#4A4840;transform:translate(-50%,-50%) rotate(-45deg)"></div>
+              </div>
+            </div>
+            <div style="font-size:13px;font-weight:600;color:#4A4840">Titipkan QRIS</div>
+            <div style="width:34px"></div>
+          </div>
+
+          <div style="padding:22px 20px 0">
+            <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:19px;color:#1C1B17">Titipkan QRIS baru</div>
+            <div style="font-size:13px;color:#8A8878;margin-top:4px">Ceritakan wadah yang ingin kamu daftarkan.</div>
+          </div>
+
+          <div style="padding:20px 20px 0">
+            <div style="font-size:12.5px;font-weight:700;color:#1C1B17;margin-bottom:8px">Kategori</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <sc-for list="{{ newCategoryOptions }}" as="nc" hint-placeholder-count="4">
+                <div onClick="{{ nc.onClick }}" style="padding:9px 14px;border-radius:999px;border:1.4px solid {{ nc.borderColor }};background:{{ nc.bg }};cursor:pointer">
+                  <span style="font-size:13px;font-weight:600;color:{{ nc.textColor }}">{{ nc.label }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="padding:18px 20px 0">
+            <div style="font-size:12.5px;font-weight:700;color:#1C1B17;margin-bottom:8px">Nama wadah</div>
+            <input value="{{ newName }}" onChange="{{ setNewName }}" placeholder="cth. Masjid Al-Ikhlas" style="width:100%;box-sizing:border-box;padding:13px 14px;border-radius:12px;border:1px solid #E2DFD4;background:#FFFFFF;font-size:13.5px;font-family:'Public Sans',sans-serif;outline:none" />
+          </div>
+
+          <div style="padding:16px 20px 0">
+            <div style="font-size:12.5px;font-weight:700;color:#1C1B17;margin-bottom:8px">Kota</div>
+            <div style="position:relative;display:flex;align-items:center;padding:13px 14px;border-radius:12px;border:1px solid #E2DFD4;background:#FFFFFF">
+              <select value="{{ newCity }}" onChange="{{ setNewCity }}" style="flex:1;border:none;outline:none;background:transparent;font-size:13.5px;font-weight:500;color:#2C2B26;font-family:'Public Sans',sans-serif;appearance:none">
+                <option value="">Pilih kota</option>
+                <optgroup label="Jabodetabek">
+                  <sc-for list="{{ jabodetabekCities }}" as="c" hint-placeholder-count="5">
+                    <option value="{{ c }}">{{ c }}</option>
+                  </sc-for>
+                </optgroup>
+                <optgroup label="Kota besar">
+                  <sc-for list="{{ kotaBesarCities }}" as="c" hint-placeholder-count="5">
+                    <option value="{{ c }}">{{ c }}</option>
+                  </sc-for>
+                </optgroup>
+              </select>
+              <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid #8A8878;margin-left:8px"></div>
+            </div>
+          </div>
+
+          <div style="padding:16px 20px 0">
+            <div style="font-size:12.5px;font-weight:700;color:#1C1B17;margin-bottom:8px">Kecamatan</div>
+            <div style="position:relative;display:flex;align-items:center;padding:13px 14px;border-radius:12px;border:1px solid #E2DFD4;background:#FFFFFF">
+              <select value="{{ newKecamatan }}" onChange="{{ setNewKecamatan }}" disabled="{{ kecamatanDisabled }}" style="flex:1;border:none;outline:none;background:transparent;font-size:13.5px;font-weight:500;color:#2C2B26;font-family:'Public Sans',sans-serif;appearance:none">
+                <option value="">Pilih kecamatan</option>
+                <sc-for list="{{ kecamatanOptions }}" as="k" hint-placeholder-count="10">
+                  <option value="{{ k }}">{{ k }}</option>
+                </sc-for>
+              </select>
+              <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid #8A8878;margin-left:8px"></div>
+            </div>
+          </div>
+
+          <div style="padding:16px 20px 0">
+            <div style="font-size:12.5px;font-weight:700;color:#1C1B17;margin-bottom:8px">Alamat (opsional)</div>
+            <input value="{{ newAddress }}" onChange="{{ setNewAddress }}" placeholder="cth. Jl. Cihampelas No. 45" style="width:100%;box-sizing:border-box;padding:13px 14px;border-radius:12px;border:1px solid #E2DFD4;background:#FFFFFF;font-size:13.5px;font-family:'Public Sans',sans-serif;outline:none" />
+          </div>
+
+          <div style="padding:16px 20px 0">
+            <div style="font-size:12.5px;font-weight:700;color:#1C1B17;margin-bottom:8px">Foto QRIS</div>
+            <x-import component-from-global-scope="image-slot" from="./image-slot.js" id="new-qris-upload" shape="rounded" radius="16" placeholder="Upload foto QRIS" style="width:100%;height:150px;display:block" hint-size="100%,150px"></x-import>
+          </div>
+
+          <div style="padding:16px 20px 28px">
+            <div style="font-size:12.5px;font-weight:700;color:#1C1B17;margin-bottom:8px">Foto lokasi (opsional)</div>
+            <x-import component-from-global-scope="image-slot" from="./image-slot.js" id="new-venue-upload" shape="rounded" radius="16" placeholder="Upload foto lokasi" style="width:100%;height:150px;display:block" hint-size="100%,150px"></x-import>
+          </div>
+        </div>
+
+        <div style="padding:14px 20px calc(14px + env(safe-area-inset-bottom));background:#F8F6F0;border-top:1px solid #EFECE3">
+          <div onClick="{{ submitAdd }}" style="background:{{ add1NextBg }};color:#FFFFFF;text-align:center;padding:15px;border-radius:999px;font-size:15px;font-weight:600;cursor:pointer">Kirim</div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ============ ADD SUCCESS ============ -->
+    <sc-if value="{{ isAddSuccess }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Titipkan QRIS - Berhasil" style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:40px;text-align:center;background:#F8F6F0">
+        <div style="width:72px;height:72px;border-radius:999px;background:#F7ECDD;display:flex;align-items:center;justify-content:center">
+          <svg width="30" height="30" viewBox="0 0 30 30"><circle cx="15" cy="15" r="13" fill="none" stroke="#C9812F" stroke-width="2"/><path d="M9 15.5 L13 19.5 L21 10.5" fill="none" stroke="#C9812F" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:19px;color:#1C1B17">Wadah berhasil ditambahkan</div>
+        <div style="font-size:13.5px;color:#6B6A63;line-height:1.6">{{ addSuccessNote }}</div>
+        <div onClick="{{ finishAdd }}" style="margin-top:6px;background:#14140F;color:#FFFFFF;padding:14px 28px;border-radius:999px;font-size:14px;font-weight:600;cursor:pointer">Kembali ke Beranda</div>
+      </div>
+    </sc-if>
+
+    <!-- ============ ADMIN ============ -->
+    <sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Admin" style="height:100%;display:flex;flex-direction:column;background:#F8F6F0">
+        <div style="flex:1;overflow-y:auto">
+          <div style="padding:56px 20px 6px;display:flex;align-items:center;justify-content:space-between">
+            <div onClick="{{ backToList }}" style="width:34px;height:34px;border-radius:999px;background:#FFFFFF;border:1px solid #E2DFD4;display:flex;align-items:center;justify-content:center;cursor:pointer">
+              <svg width="8" height="14" viewBox="0 0 8 14"><path d="M7 1 L1 7 L7 13" stroke="#4A4840" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div style="font-size:13px;font-weight:600;color:#4A4840">Panel Admin</div>
+            <div style="width:34px"></div>
+          </div>
+
+          <div style="padding:16px 20px 6px">
+            <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:19px;color:#1C1B17">Menunggu persetujuan</div>
+            <div style="font-size:13px;color:#8A8878;margin-top:4px">Wadah baru tampil publik setelah disetujui di sini.</div>
+          </div>
+
+          <sc-if value="{{ noPending }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 32px;text-align:center;gap:10px">
+              <div style="width:60px;height:60px;border-radius:999px;background:#E8F0EA;display:flex;align-items:center;justify-content:center">
+                <svg width="26" height="26" viewBox="0 0 26 26"><circle cx="13" cy="13" r="11" fill="none" stroke="#2E6B4F" stroke-width="2"/><path d="M8 13.5 L11.5 17 L18 9.5" fill="none" stroke="#2E6B4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              <div style="font-size:13.5px;color:#8A8878">Tidak ada pengajuan yang menunggu.</div>
+            </div>
+          </sc-if>
+
+          <div style="display:flex;flex-direction:column;gap:10px;padding:12px 20px 24px">
+            <sc-for list="{{ pendingItems }}" as="p" hint-placeholder-count="2">
+              <div style="background:#FFFFFF;border:1px solid #EFECE3;border-radius:16px;padding:14px">
+                <div style="display:flex;align-items:center;gap:10px">
+                  <div style="width:38px;height:38px;border-radius:11px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:{{ p.catBg }};color:{{ p.catColor }}">
+                    <sc-if value="{{ p.isMasjid }}"><svg width="18" height="18" viewBox="0 0 16 16"><path d="M3 12 v-2.2a5 5 0 0 1 10 0V12" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="2" y="12" width="12" height="1.6" rx="0.6" fill="currentColor"/><circle cx="8" cy="3.2" r="1" fill="currentColor"/></svg></sc-if>
+                    <sc-if value="{{ p.isYayasan }}"><svg width="18" height="18" viewBox="0 0 16 16"><circle cx="5.6" cy="6" r="3.1" fill="currentColor"/><circle cx="10.4" cy="6" r="3.1" fill="currentColor"/><rect x="4.2" y="5.2" width="7.6" height="7.6" transform="rotate(45 8 9)" fill="currentColor"/></svg></sc-if>
+                    <sc-if value="{{ p.isUmkm }}"><svg width="18" height="18" viewBox="0 0 16 16"><path d="M5 6.5a3 3 0 0 1 6 0" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="3.2" y="6.2" width="9.6" height="7.6" rx="1.3" fill="currentColor"/></svg></sc-if>
+                    <sc-if value="{{ p.isLainnya }}"><svg width="18" height="18" viewBox="0 0 16 16"><rect x="4.5" y="4.5" width="7" height="7" transform="rotate(45 8 8)" fill="currentColor"/></svg></sc-if>
+                  </div>
+                  <div style="flex:1;min-width:0">
+                    <div style="font-size:14px;font-weight:600;color:#1C1B17;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.name }}</div>
+                    <div style="font-size:11.5px;color:#8A8878;margin-top:2px">{{ p.kecamatan }}, {{ p.city }}</div>
+                  </div>
+                </div>
+                <div style="display:flex;gap:8px;margin-top:12px">
+                  <div onClick="{{ p.onReject }}" style="flex:1;text-align:center;padding:10px;border-radius:10px;border:1px solid #E2DFD4;background:#FFFFFF;font-size:13px;font-weight:600;color:#8A5A6B;cursor:pointer">Tolak</div>
+                  <div onClick="{{ p.onApprove }}" style="flex:1;text-align:center;padding:10px;border-radius:10px;background:#2E6B4F;font-size:13px;font-weight:600;color:#FFFFFF;cursor:pointer">Setujui</div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+  </x-import>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 500, &quot;height&quot;: 900}, &quot;demoMode&quot;: {&quot;editor&quot;: &quot;enum&quot;, &quot;default&quot;: &quot;populated&quot;, &quot;options&quot;: [&quot;populated&quot;, &quot;empty&quot;], &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Demo&quot;}, &quot;showApprovalNote&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Demo&quot;}}">
+const CATEGORY_META = {
+  masjid: { label: 'Masjid', icon: 'masjid', color: '#2E6B4F', bg: '#E8F0EA' },
+  yayasan: { label: 'Yayasan', icon: 'yayasan', color: '#C9812F', bg: '#F7ECDD' },
+  umum: { label: 'UMKM', icon: 'umkm', color: '#3E6B8A', bg: '#E7EEF2' },
+  lainnya: { label: 'Lainnya', icon: 'lainnya', color: '#8A5A6B', bg: '#F2E7EC' },
+};
+
+const SAMPLE_DATA = [
+  { id: 1, name: 'Masjid Al-Ikhlas', category: 'masjid', city: 'Bandung', address: 'Jl. Cihampelas No. 45, Cipaganti', status: 'approved', desc: 'Kotak QRIS di masjid ini dipakai untuk kebutuhan operasional harian dan renovasi ruang wudu.' },
+  { id: 2, name: 'Yayasan Kasih Anak Bangsa', category: 'yayasan', city: 'Yogyakarta', address: 'Jl. Kaliurang Km 7, Sleman', status: 'approved', desc: 'Menyalurkan bantuan pendidikan dan kebutuhan pokok untuk anak-anak yatim di sekitar Sleman.' },
+  { id: 3, name: 'Panti Asuhan Nurul Hidayah', category: 'yayasan', city: 'Surabaya', address: 'Jl. Kertajaya No. 12, Gubeng', status: 'approved', desc: 'Donasi dipakai untuk kebutuhan makan harian dan perlengkapan sekolah anak panti.' },
+  { id: 4, name: "Masjid Jami' Baiturrahman", category: 'masjid', city: 'Bandung', address: 'Jl. Braga No. 8, Sumur Bandung', status: 'approved', desc: 'Terkumpul untuk perbaikan atap dan pengadaan karpet baru.' },
+  { id: 5, name: 'Warung Pak Slamet', category: 'umum', city: 'Bandung', address: 'Jl. Sukajadi No. 102', status: 'approved', desc: 'UMKM warung yang menyediakan galon minum gratis bagi warga sekitar.' },
+  { id: 6, name: 'UMKM Binaan Rumah Zakat', category: 'umum', city: 'Jakarta Selatan', address: 'Jl. Radio Dalam No. 3, Kebayoran Baru', status: 'approved', desc: 'Modal usaha bergulir untuk pedagang kecil binaan Rumah Zakat.' },
+];
+
+const JABODETABEK = ['Jakarta Selatan', 'Jakarta Pusat', 'Jakarta Barat', 'Jakarta Timur', 'Jakarta Utara', 'Bogor', 'Depok', 'Tangerang', 'Tangerang Selatan', 'Bekasi'];
+const KOTA_BESAR = ['Bandung', 'Yogyakarta', 'Surabaya', 'Semarang', 'Medan', 'Makassar', 'Palembang', 'Denpasar'];
+const CITIES = ['Semua kota', ...JABODETABEK, ...KOTA_BESAR];
+
+const KECAMATAN_BY_CITY = {
+  'Jakarta Selatan': ['Kebayoran Baru', 'Kebayoran Lama', 'Cilandak', 'Pesanggrahan', 'Mampang Prapatan', 'Pancoran', 'Tebet', 'Setiabudi', 'Jagakarsa', 'Pasar Minggu'],
+  'Jakarta Pusat': ['Gambir', 'Tanah Abang', 'Menteng', 'Senen', 'Cempaka Putih', 'Johar Baru', 'Kemayoran', 'Sawah Besar'],
+  'Jakarta Barat': ['Kembangan', 'Kebon Jeruk', 'Palmerah', 'Grogol Petamburan', 'Tambora', 'Taman Sari', 'Cengkareng', 'Kalideres'],
+  'Jakarta Timur': ['Matraman', 'Pulogadung', 'Jatinegara', 'Duren Sawit', 'Kramat Jati', 'Makasar', 'Pasar Rebo', 'Cakung', 'Cipayung', 'Ciracas'],
+  'Jakarta Utara': ['Penjaringan', 'Pademangan', 'Tanjung Priok', 'Koja', 'Kelapa Gading', 'Cilincing'],
+  'Bogor': ['Bogor Selatan', 'Bogor Timur', 'Bogor Utara', 'Bogor Tengah', 'Bogor Barat', 'Tanah Sareal'],
+  'Depok': ['Beji', 'Pancoran Mas', 'Cipayung', 'Sukmajaya', 'Cilodong', 'Cimanggis', 'Tapos', 'Sawangan', 'Bojongsari', 'Limo', 'Cinere'],
+  'Tangerang': ['Karawaci', 'Cipondoh', 'Ciledug', 'Larangan', 'Karang Tengah', 'Batuceper', 'Benda', 'Neglasari', 'Periuk', 'Jatiuwung', 'Cibodas', 'Pinang', 'Tangerang'],
+  'Tangerang Selatan': ['Serpong', 'Serpong Utara', 'Ciputat', 'Ciputat Timur', 'Pamulang', 'Pondok Aren', 'Setu'],
+  'Bekasi': ['Bekasi Timur', 'Bekasi Barat', 'Bekasi Utara', 'Bekasi Selatan', 'Rawalumbu', 'Bantargebang', 'Mustikajaya', 'Pondokgede', 'Jatiasih', 'Jatisampurna', 'Medan Satria', 'Pondok Melati'],
+  'Bandung': ['Sukasari', 'Coblong', 'Cidadap', 'Sukajadi', 'Andir', 'Cicendo', 'Bandung Wetan', 'Sumur Bandung', 'Astanaanyar', 'Bojongloa Kaler', 'Bojongloa Kidul', 'Babakan Ciparay', 'Bandung Kulon', 'Regol', 'Lengkong', 'Batununggal', 'Kiaracondong', 'Cibeunying Kidul', 'Cibeunying Kaler', 'Antapani', 'Mandalajati', 'Arcamanik', 'Ujungberung', 'Cinambo', 'Panyileukan', 'Cibiru', 'Gedebage', 'Rancasari', 'Buahbatu', 'Bandung Kidul'],
+  'Yogyakarta': ['Mantrijeron', 'Kraton', 'Mergangsan', 'Umbulharjo', 'Kotagede', 'Gondokusuman', 'Danurejan', 'Pakualaman', 'Gondomanan', 'Ngampilan', 'Wirobrajan', 'Gedongtengen', 'Jetis', 'Tegalrejo'],
+  'Surabaya': ['Genteng', 'Gubeng', 'Wonokromo', 'Tegalsari', 'Simokerto', 'Bubutan', 'Semampir', 'Pabean Cantikan', 'Krembangan', 'Kenjeran', 'Bulak', 'Tambaksari', 'Rungkut', 'Sukolilo', 'Mulyorejo', 'Gunung Anyar', 'Tenggilis Mejoyo', 'Wonocolo', 'Wiyung', 'Karangpilang', 'Jambangan', 'Gayungan', 'Dukuh Pakis', 'Sawahan', 'Sukomanunggal', 'Tandes', 'Benowo', 'Pakal', 'Asemrowo', 'Lakarsantri', 'Sambikerep'],
+  'Semarang': ['Semarang Tengah', 'Semarang Utara', 'Semarang Timur', 'Semarang Selatan', 'Semarang Barat', 'Candisari', 'Gajahmungkur', 'Gayamsari', 'Genuk', 'Pedurungan', 'Banyumanik', 'Gunungpati', 'Tembalang', 'Ngaliyan', 'Mijen', 'Tugu'],
+  'Medan': ['Medan Kota', 'Medan Baru', 'Medan Timur', 'Medan Barat', 'Medan Area', 'Medan Denai', 'Medan Tembung', 'Medan Perjuangan', 'Medan Amplas', 'Medan Helvetia', 'Medan Petisah', 'Medan Polonia', 'Medan Maimun', 'Medan Selayang', 'Medan Sunggal', 'Medan Johor', 'Medan Tuntungan', 'Medan Marelan', 'Medan Labuhan', 'Medan Belawan', 'Medan Deli'],
+  'Makassar': ['Mariso', 'Mamajang', 'Tamalate', 'Rappocini', 'Makassar', 'Ujung Pandang', 'Wajo', 'Bontoala', 'Ujung Tanah', 'Kepulauan Sangkarrang', 'Tallo', 'Panakkukang', 'Manggala', 'Biringkanaya', 'Tamalanrea'],
+  'Palembang': ['Ilir Barat I', 'Ilir Barat II', 'Ilir Timur I', 'Ilir Timur II', 'Ilir Timur III', 'Seberang Ulu I', 'Seberang Ulu II', 'Sukarami', 'Sako', 'Kemuning', 'Kalidoni', 'Bukit Kecil', 'Gandus', 'Kertapati', 'Plaju', 'Jakabaring', 'Alang-Alang Lebar', 'Sematang Borang'],
+  'Denpasar': ['Denpasar Selatan', 'Denpasar Timur', 'Denpasar Barat', 'Denpasar Utara'],
+};
+
+class Component extends DCLogic {
+  state = {
+    screen: 'list',
+    category: 'semua',
+    city: 'Semua kota',
+    selectedId: null,
+    menuOpen: false,
+    nominal: null,
+    customNominal: '',
+    newCategory: 'masjid',
+    newName: '',
+    newCity: '',
+    newKecamatan: '',
+    newAddress: '',
+    newDesc: '',
+    newPhone: '',
+    newAgree: false,
+    addedItems: [],
+  };
+
+  setCategory = (key) => this.setState({ category: key });
+  onCityChange = (e) => this.setState({ city: e.target.value });
+  viewDetail = (id) => this.setState({ screen: 'detail', selectedId: id });
+  backToList = () => this.setState({ screen: 'list', menuOpen: false });
+  backToDetail = () => this.setState({ screen: 'detail' });
+  goToPay = () => this.setState({ screen: 'pay' });
+  confirmPay = () => this.setState({ screen: 'paySuccess' });
+  startAdd = () => this.setState({
+    screen: 'add1', menuOpen: false, newCategory: 'masjid', newName: '', newCity: '', newKecamatan: '', newAddress: '', newDesc: '', newPhone: '', newAgree: false,
+  });
+  goToAdd2 = () => { if (this.state.newName.trim() && this.state.newCity.trim() && this.state.newKecamatan.trim()) this.setState({ screen: 'add2' }); };
+  backToAdd1 = () => this.setState({ screen: 'add1' });
+  setNewCategory = (key) => this.setState({ newCategory: key });
+  setNewName = (e) => this.setState({ newName: e.target.value });
+  setNewCity = (e) => this.setState({ newCity: e.target.value, newKecamatan: '' });
+  setNewKecamatan = (e) => this.setState({ newKecamatan: e.target.value });
+  setNewAddress = (e) => this.setState({ newAddress: e.target.value });
+  setNewDesc = (e) => this.setState({ newDesc: e.target.value });
+  setNewPhone = (e) => this.setState({ newPhone: e.target.value });
+  toggleAgree = () => this.setState((s) => ({ newAgree: !s.newAgree }));
+  submitAdd = () => {
+    if (!(this.state.newName.trim() && this.state.newCity.trim() && this.state.newKecamatan.trim())) return;
+    const item = {
+      id: Date.now(),
+      name: this.state.newName.trim() || 'Wadah baru',
+      category: this.state.newCategory,
+      city: this.state.newCity.trim() || '-',
+      kecamatan: this.state.newKecamatan.trim(),
+      address: this.state.newAddress.trim() || '',
+      desc: this.state.newDesc.trim() || 'Belum ada deskripsi tambahan.',
+      status: 'pending',
+    };
+    this.setState((s) => ({ addedItems: [...s.addedItems, item], screen: 'addSuccess' }));
+  };
+  finishAdd = () => this.setState({ screen: 'list', category: 'semua', city: 'Semua kota' });
+  toggleMenu = () => this.setState((s) => ({ menuOpen: !s.menuOpen }));
+  closeMenu = () => this.setState({ menuOpen: false });
+  resetToHome = () => this.setState({ screen: 'list', menuOpen: false });
+  openAdmin = () => this.setState({ screen: 'admin', menuOpen: false });
+  approveItem = (id) => this.setState((s) => ({
+    addedItems: s.addedItems.map((it) => (it.id === id ? { ...it, status: 'approved' } : it)),
+  }));
+  rejectItem = (id) => this.setState((s) => ({
+    addedItems: s.addedItems.filter((it) => it.id !== id),
+  }));
+
+  renderVals() {
+    const s = this.state;
+    const demoMode = this.props.demoMode ?? 'populated';
+    const approvalNote = this.props.showApprovalNote ?? true;
+
+    const baseline = demoMode === 'empty' ? [] : SAMPLE_DATA;
+    const fullList = [...baseline, ...s.addedItems];
+    const publicList = fullList.filter((w) => w.status === 'approved');
+
+    const pendingRaw = s.addedItems.filter((w) => w.status === 'pending');
+    const pendingItems = pendingRaw.map((w) => {
+      const meta = CATEGORY_META[w.category] || CATEGORY_META.lainnya;
+      return {
+        ...w,
+        catBg: meta.bg,
+        catColor: meta.color,
+        isMasjid: meta.icon === 'masjid',
+        isYayasan: meta.icon === 'yayasan',
+        isUmkm: meta.icon === 'umkm',
+        isLainnya: meta.icon === 'lainnya',
+        onApprove: () => this.approveItem(w.id),
+        onReject: () => this.rejectItem(w.id),
+      };
+    });
+
+    const filteredList = publicList
+      .filter((w) => s.category === 'semua' || w.category === s.category)
+      .filter((w) => s.city === 'Semua kota' || w.city === s.city)
+      .map((w) => {
+        const meta = CATEGORY_META[w.category] || CATEGORY_META.lainnya;
+        return {
+          ...w,
+          catBg: meta.bg,
+          catColor: meta.color,
+          isMasjid: meta.icon === 'masjid',
+          isYayasan: meta.icon === 'yayasan',
+          isUmkm: meta.icon === 'umkm',
+          isLainnya: meta.icon === 'lainnya',
+          onClick: () => this.viewDetail(w.id),
+        };
+      });
+
+      const chipStyle = (active) => ({
+      chipBg: active ? '#1C1B17' : '#FFFFFF',
+      chipBorder: active ? '#1C1B17' : '#E2DFD4',
+      chipText: active ? '#F8F6F0' : '#3A3830',
+    });
+    const categories = [
+      { key: 'semua', label: 'Semua', hasIcon: false, active: s.category === 'semua', onClick: () => this.setCategory('semua'), ...chipStyle(s.category === 'semua') },
+      ...Object.keys(CATEGORY_META).map((key) => ({
+        key, label: CATEGORY_META[key].label, hasIcon: true,
+        isMasjid: CATEGORY_META[key].icon === 'masjid',
+        isYayasan: CATEGORY_META[key].icon === 'yayasan',
+        isUmkm: CATEGORY_META[key].icon === 'umkm',
+        isLainnya: CATEGORY_META[key].icon === 'lainnya',
+        active: s.category === key, onClick: () => this.setCategory(key), ...chipStyle(s.category === key),
+      })),
+    ];
+
+    const rawSelected = fullList.find((w) => w.id === s.selectedId);
+    const selMeta = rawSelected ? (CATEGORY_META[rawSelected.category] || CATEGORY_META.lainnya) : CATEGORY_META.masjid;
+    const selectedWadah = rawSelected ? {
+      ...rawSelected,
+      catBg: selMeta.bg, catColor: selMeta.color, catLabel: selMeta.label,
+      locationLabel: rawSelected.kecamatan ? (rawSelected.kecamatan + ', ' + rawSelected.city) : rawSelected.city,
+    } : { id: 0, name: '', city: '', address: '', desc: '', catBg: '#E8F0EA', catColor: '#2E6B4F', catLabel: '', locationLabel: '' };
+
+    const newCategoryOptions = Object.keys(CATEGORY_META).map((key) => {
+      const meta = CATEGORY_META[key];
+      const active = s.newCategory === key;
+      return {
+        key, label: meta.label, onClick: () => this.setNewCategory(key),
+        bg: active ? meta.bg : '#FFFFFF', borderColor: active ? meta.color : '#E2DFD4',
+        textColor: active ? meta.color : '#3A3830',
+      };
+    });
+
+    const add1Ready = s.newName.trim() && s.newCity.trim() && s.newKecamatan.trim();
+    const kecamatanOptions = KECAMATAN_BY_CITY[s.newCity] || [];
+    const add2Ready = s.newPhone.trim() && s.newAgree;
+
+    return {
+      isList: s.screen === 'list',
+      isDetail: s.screen === 'detail',
+      isPay: s.screen === 'pay',
+      isPaySuccess: s.screen === 'paySuccess',
+      isAdd1: s.screen === 'add1',
+      isAddSuccess: s.screen === 'addSuccess',
+      isAdmin: s.screen === 'admin',
+      menuOpen: s.menuOpen,
+      toggleMenu: this.toggleMenu,
+      closeMenu: this.closeMenu,
+      resetToHome: this.resetToHome,
+      openAdmin: this.openAdmin,
+      pendingItems,
+      hasPending: pendingItems.length > 0,
+      noPending: pendingItems.length === 0,
+      pendingCount: pendingItems.length,
+      categories,
+      cities: CITIES,
+      city: s.city,
+      onCityChange: this.onCityChange,
+      filteredList,
+      isEmpty: filteredList.length === 0,
+      hasResults: filteredList.length > 0,
+      backToList: this.backToList,
+      backToDetail: this.backToDetail,
+      startAdd: this.startAdd,
+      selectedWadah,
+      goToPay: this.goToPay,
+      confirmPay: this.confirmPay,
+      goToAdd2: this.goToAdd2,
+      backToAdd1: this.backToAdd1,
+      newCategoryOptions,
+      newName: s.newName, setNewName: this.setNewName,
+      jabodetabekCities: JABODETABEK,
+      kotaBesarCities: KOTA_BESAR,
+      newCity: s.newCity, setNewCity: this.setNewCity,
+      newKecamatan: s.newKecamatan, setNewKecamatan: this.setNewKecamatan,
+      kecamatanOptions,
+      kecamatanDisabled: !s.newCity,
+      newAddress: s.newAddress, setNewAddress: this.setNewAddress,
+      newDesc: s.newDesc, setNewDesc: this.setNewDesc,
+      newPhone: s.newPhone, setNewPhone: this.setNewPhone,
+      newAgree: s.newAgree, toggleAgree: this.toggleAgree,
+      agreeBorder: s.newAgree ? '#2E6B4F' : '#D8D4C8',
+      agreeBg: s.newAgree ? '#2E6B4F' : '#FFFFFF',
+      add1NextBg: add1Ready ? '#14140F' : '#C9C6BA',
+      add2SubmitBg: add2Ready ? '#14140F' : '#C9C6BA',
+      submitAdd: this.submitAdd,
+      finishAdd: this.finishAdd,
+      addSuccessNote: approvalNote
+        ? 'Tim kami akan meninjau dalam 1x24 jam sebelum tampil untuk publik.'
+        : 'Wadah kamu sudah aktif dan bisa langsung menerima donasi.',
+    };
+  }
+}
+
+</script>
+</body>
+</html>
