@@ -709,8 +709,25 @@ function toBlob(dataUrl){
   for(let k=0;k<bin.length;k++) arr[k]=bin.charCodeAt(k);
   return new Blob([arr],{type:mime});
 }
-window.unduh = id => {
+const IOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+  || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1); // iPadOS menyamar sebagai Mac
+window.unduh = async id => {
   const i=items.find(x=>x.id===id); if(!i) return;
+  // Di iOS, <a download> mendarat di app Files — web tidak boleh menulis langsung
+  // ke Photos. Satu-satunya jalur ke galeri adalah share sheet → "Simpan Gambar".
+  if(IOS && navigator.canShare){
+    try{
+      const file=new File([toBlob(i.dataUrl)],`QRIS-${slug(i.name)}.jpg`,{type:"image/jpeg"});
+      if(navigator.canShare({files:[file]})){
+        toast("Pilih “Simpan Gambar” agar masuk ke galeri","ok");
+        await navigator.share({files:[file]});
+        return;
+      }
+    }catch(e){
+      if(e.name==="AbortError") return; // pengguna menutup share sheet
+      console.error(e); // gagal share → coba unduhan biasa di bawah
+    }
+  }
   try{
     // Wajib blob: URL — atribut download diabaikan pada data: URL di Safari iOS.
     const url=URL.createObjectURL(toBlob(i.dataUrl));
@@ -719,7 +736,7 @@ window.unduh = id => {
     a.download=`QRIS-${slug(i.name)}${i.city?"-"+slug(i.city):""}.jpg`;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(()=>URL.revokeObjectURL(url),60000);
-    toast("QRIS diunduh — cek folder Unduhan","ok");
+    toast("QRIS diunduh — cek galeri atau folder Unduhan","ok");
   }catch(e){ console.error(e); toast("Gagal mengunduh","err") }
 };
 window.bagikan = async id => {
