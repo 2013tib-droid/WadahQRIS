@@ -12,13 +12,13 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ── GANTI dengan UID admin kamu ──────────────────────────
-    // Ambil dari: Firebase Console → Authentication → Users → kolom "User UID"
+    // ── UID admin ────────────────────────────────────────────
+    // Dari: Firebase Console → Authentication → Users → kolom "User UID"
     // Boleh lebih dari satu kalau pengurusnya banyak.
     function isAdmin() {
       return request.auth != null
           && request.auth.uid in [
-               'GANTI_DENGAN_UID_ADMIN'
+               'AQnv50adjaZzw9ObgelOemNECS42'
              ];
     }
 
