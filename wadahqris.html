@@ -813,7 +813,7 @@ document.querySelectorAll(".cat").forEach(b=>b.onclick=()=>{
 });
 
 /* Gambar */
-function compress(f, max, q, cb){
+function compress(f, max, q, cap, cb){
   if(!f.type.startsWith("image/")) return toast("File itu bukan gambar","err");
   const r=new FileReader();
   r.onload=ev=>{
@@ -825,7 +825,11 @@ function compress(f, max, q, cb){
       const cx=cv.getContext("2d");
       cx.fillStyle="#fff"; cx.fillRect(0,0,cv.width,cv.height);
       cx.drawImage(im,0,0,cv.width,cv.height);
-      cb(cv.toDataURL("image/jpeg",q));
+      // Turunkan kualitas bertahap bila masih melebihi batas ukuran
+      // dataUrl di firestore.rules — supaya upload tidak ditolak server.
+      let d=cv.toDataURL("image/jpeg",q);
+      while(d.length>cap && q>.5){ q-=.06; d=cv.toDataURL("image/jpeg",q) }
+      cb(d);
     };
     im.onerror=()=>toast("Gambar tidak bisa dibaca","err");
     im.src=ev.target.result;
@@ -834,13 +838,13 @@ function compress(f, max, q, cb){
 }
 $("drop").onclick=()=>$("file").click();
 $("retake").onclick=()=>$("file").click();
-$("file").onchange=e=>{ const f=e.target.files[0]; if(f) compress(f,500,.72,d=>{ img=d; $("prevImg").src=d; $("prevBox").hidden=false; $("drop").hidden=true; paint() }) };
+$("file").onchange=e=>{ const f=e.target.files[0]; if(f) compress(f,1000,.85,560000,d=>{ img=d; $("prevImg").src=d; $("prevBox").hidden=false; $("drop").hidden=true; paint() }) };
 ["dragover","dragleave","drop"].forEach(ev=>$("drop").addEventListener(ev,e=>{
   e.preventDefault(); $("drop").classList.toggle("hot",ev==="dragover");
-  if(ev==="drop"&&e.dataTransfer.files[0]) compress(e.dataTransfer.files[0],500,.72,d=>{ img=d; $("prevImg").src=d; $("prevBox").hidden=false; $("drop").hidden=true; paint() });
+  if(ev==="drop"&&e.dataTransfer.files[0]) compress(e.dataTransfer.files[0],1000,.85,560000,d=>{ img=d; $("prevImg").src=d; $("prevBox").hidden=false; $("drop").hidden=true; paint() });
 }));
 $("drop2").onclick=()=>$("file2").click();
-$("file2").onchange=e=>{ const f=e.target.files[0]; if(f) compress(f,420,.65,d=>{ img2=d; $("prevImg2").src=d; $("prevBox2").hidden=false; $("drop2").hidden=true }) };
+$("file2").onchange=e=>{ const f=e.target.files[0]; if(f) compress(f,420,.65,380000,d=>{ img2=d; $("prevImg2").src=d; $("prevBox2").hidden=false; $("drop2").hidden=true }) };
 $("remove2").onclick=()=>{ img2=null; $("file2").value=""; $("prevBox2").hidden=true; $("drop2").hidden=false };
 
 async function submit(){
