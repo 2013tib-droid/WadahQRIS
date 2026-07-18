@@ -1068,7 +1068,10 @@ function listen(){
   }, err=>{
     console.error(err);
     $("list").innerHTML="";
-    $("empty").innerHTML=`<div class="empty"><div class="big">⚠️</div><h3>Wadah tidak bisa dimuat</h3><p>${err.code==="permission-denied"?"Akses ditolak. Periksa Firestore Rules.":"Periksa koneksi internetmu."}</p></div>`;
+    const msg = err.code==="permission-denied" ? "Akses ditolak. Periksa Firestore Rules."
+      : err.code==="failed-precondition" ? "Index Firestore belum dibuat. Buka Firebase Console → Firestore → Indexes (composite: status ASC + uploadedAt DESC)."
+      : "Periksa koneksi internetmu.";
+    $("empty").innerHTML=`<div class="empty"><div class="big">⚠️</div><h3>Wadah tidak bisa dimuat</h3><p>${msg}</p></div>`;
   });
 }
 /* Data contoh — HANYA saat Firebase belum dipasang, supaya tampilan bisa dinilai.
