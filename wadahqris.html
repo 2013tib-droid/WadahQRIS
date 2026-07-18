@@ -849,7 +849,7 @@ $("file").onchange=e=>{ const f=e.target.files[0]; if(f) compress(f,1000,.85,560
   if(ev==="drop"&&e.dataTransfer.files[0]) compress(e.dataTransfer.files[0],1000,.85,560000,d=>{ img=d; $("prevImg").src=d; $("prevBox").hidden=false; $("drop").hidden=true; paint() });
 }));
 $("drop2").onclick=()=>$("file2").click();
-$("file2").onchange=e=>{ const f=e.target.files[0]; if(f) compress(f,420,.65,380000,d=>{ img2=d; $("prevImg2").src=d; $("prevBox2").hidden=false; $("drop2").hidden=true }) };
+$("file2").onchange=e=>{ const f=e.target.files[0]; if(f) compress(f,900,.8,380000,d=>{ img2=d; $("prevImg2").src=d; $("prevBox2").hidden=false; $("drop2").hidden=true }) };
 $("remove2").onclick=()=>{ img2=null; $("file2").value=""; $("prevBox2").hidden=true; $("drop2").hidden=false };
 
 async function submit(){

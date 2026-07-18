@@ -19,7 +19,7 @@ Pemilik: Askar. Komunikasi dalam Bahasa Indonesia, permintaan perubahan biasanya
 ### Struktur data dokumen `qris`
 Field per entry: `id`, `name`, `address`, `category` (🕌 Masjid / 🛍️ UMKM / 📌 Lainnya), `dataUrl` (base64 JPEG), `uploadedAt`, `status` (`pending` / `approved`).
 
-Gambar QRIS otomatis di-resize & dikompres ke JPEG (maks 1000px, kualitas 85%) sebelum disimpan → ~150–350KB per gambar. Dinaikkan dari 500px/72% karena hasil unduhan terasa kecil/buram untuk dicetak; 1000px setara file asli dari penyedia QRIS dan tajam dicetak sampai ±8 cm @300 DPI. `compress()` punya pengaman: kualitas turun bertahap (step 6%, minimal 50%) sampai base64 < `cap` (QRIS 560K, foto pendukung 380K) agar tidak ditolak `firestore.rules` (batas `dataUrl` 600K).
+Gambar QRIS otomatis di-resize & dikompres ke JPEG (maks 1000px, kualitas 85%) sebelum disimpan → ~150–350KB per gambar. Dinaikkan dari 500px/72% karena hasil unduhan terasa kecil/buram untuk dicetak; 1000px setara file asli dari penyedia QRIS dan tajam dicetak sampai ±8 cm @300 DPI. Foto pendukung (opsional) di-resize maks 900px kualitas 80% (dinaikkan dari 420px/65% yang terasa terlalu buram). `compress()` punya pengaman: kualitas turun bertahap (step 6%, minimal 50%) sampai base64 < `cap` (QRIS 560K, foto pendukung 380K) agar tidak ditolak `firestore.rules` (batas `dataUrl` 600K, `photoUrl` 400K). Total maks per dokumen ±940K, di bawah batas 1MB Firestore.
 
 ## Kondisi Saat Ini (paling baru)
 
