@@ -6,7 +6,7 @@ Pemilik: Askar. Komunikasi dalam Bahasa Indonesia, permintaan perubahan biasanya
 
 ## Filosofi Pengembangan
 
-- **Demo-first**: selesaikan tampilan & fitur dulu, baru komit ke infrastruktur deployment (Firebase belum di-deploy sampai Askar kasih lampu hijau eksplisit).
+- **Demo-first** (fase awal, sudah selesai): tampilan & fitur diselesaikan dulu sebelum komit ke infrastruktur. Kini **sudah live** di Firebase Hosting dengan config produksi terpasang — perubahan kode berdampak ke situs produksi setelah di-deploy ulang.
 - Copy/tone bernuansa filosofis & trust-oriented (contoh: tombol submit = "Amanahkan ke wadah").
 - Referensi desain: **Kitabisa** (warna-warni, playful, terasa seperti gerakan komunitas).
 
@@ -24,30 +24,29 @@ Gambar QRIS otomatis di-resize & dikompres ke JPEG (maks 1000px, kualitas 85%) s
 ## Kondisi Saat Ini (paling baru)
 
 - **Layout text-first**: bukan grid thumbnail QR (karena thumbnail QR secara visual tidak bisa dibedakan). Kartu menampilkan nama + kota; QR baru muncul di detail sheet saat diklik.
-- **Filter lokasi**: 28 kota besar Indonesia dengan dropdown kecamatan (hardcoded). Dropdown kecamatan disembunyikan sampai kota dipilih.
+- **Filter lokasi**: 35 wilayah Indonesia dengan dropdown kecamatan (hardcoded). Daerah yang punya 2 tingkat administrasi bernama sama dipisah jadi dua entri, mis. "Bogor (Kota)" & "Bogor (Kabupaten)" — berlaku untuk Bogor, Bekasi, Tangerang, Bandung, Semarang, Malang, Cirebon (masing-masing dengan daftar kecamatan resmi lengkap). Dropdown kecamatan disembunyikan sampai kota dipilih.
 - **Alur upload 4 langkah**: identitas/kategori → lokasi → foto QRIS → foto pendukung (opsional).
 - **Sistem approval**: upload masuk sebagai `status: pending`, hanya tampil di galeri publik setelah admin approve. Galeri publik query `.where('status','==','approved')`; panel admin pending query `.where('status','==','pending')`.
 - **Keamanan (arsitektur terbaru)**: sudah pindah dari PIN client-side ke **Firebase Authentication (email/password)** + **Firestore Security Rules**. Rules: publik boleh read + create (hanya `pending`, dengan validasi field & batas ukuran); approve/delete hanya untuk admin yang terautentikasi. Sudah ada file pendamping `firestore.rules` dan panduan `CARA-PASANG-KEAMANAN.md`.
 - **Panel admin**: statistik live (jumlah pending, jumlah approved, jumlah kota tercakup) + CTA "tinjau sekarang".
 - **Pencarian teks**: kotak cari di header (`#fSearch`) yang memfilter lewat nama, kota, kecamatan, & alamat sekaligus. Bekerja bareng filter kategori/kota, dan juga di antrean pending (bantu admin cari 1 titipan). Punya tombol clear, state kosong khusus ("🔍 Tidak ada hasil untuk …"), dan count kontekstual ("X hasil untuk …"). Ditambahkan agar tampilan tetap user-friendly saat isi mencapai ~100 QRIS.
 - **Edit entri (admin)**: admin bisa memperbaiki typo/data lewat sheet `#eSheet` — field nama, kategori, kota, kecamatan, alamat (gambar QRIS & status TIDAK bisa diubah di sini). Dua titik masuk: tombol "✏️ Perbaiki data" di detail sheet, dan tombol "✏ Edit" di kartu approved. Fungsi `window.editEntry(id)` + `#eSave`. **Wajib sinkron dengan `firestore.rules`**: rule `update` kini punya 2 cabang — (a) setujui (`status`→`approved`), (b) perbaiki data (hanya 5 field teks, dengan validasi seperti create; `dataUrl`/`photoUrl`/`status`/`uploadedAt` immutable).
-- **Bypass admin (TESTING)**: selama `LIVE=false` (firebaseConfig masih placeholder), tombol/link Admin langsung masuk mode admin tanpa login, dan approve/tolak/hapus/edit bekerja di data demo lokal. Ditandai komentar `BYPASS testing` di kode. Otomatis mati begitu `LIVE=true`; tetap sebaiknya dihapus sebelum produksi.
-- **Hubungi kami (WhatsApp)**: tombol pill kecil "💬 Hubungi kami" (`#waBtn`) di footer bawah daftar → buka `wa.me` dengan pesan awal. Nomor di konstanta `WA_NUMBER` (format `62xxx`, tanpa `+`/`0`) — **masih placeholder, wajib diganti sebelum go-live**. Helper: `waLink(text)` + `hubungiWA(text)` (bisa dipakai ulang mis. untuk "laporkan QRIS ini").
+- **Bypass admin (TESTING)**: hanya aktif saat `LIVE=false` — tombol/link Admin langsung masuk mode admin tanpa login, dan approve/tolak/hapus/edit bekerja di data demo lokal. Ditandai komentar `BYPASS testing` di kode. Karena config asli sudah terpasang (`LIVE=true`), bypass ini sekarang **nonaktif** di produksi; tetap sebaiknya dihapus dari kode suatu saat.
+- **Hubungi kami (WhatsApp)**: tombol pill kecil "💬 Hubungi kami" (`#waBtn`) di footer bawah daftar → buka `wa.me` dengan pesan awal. Nomor di konstanta `WA_NUMBER` (format `62xxx`, tanpa `+`/`0`) — sudah diisi nomor pengurus asli. Helper: `waLink(text)` + `hubungiWA(text)` (bisa dipakai ulang mis. untuk "laporkan QRIS ini").
 - **Entry admin pindah ke footer**: tombol "🔑 Admin" di header dihapus (99% pengunjung bukan pengurus). Sekarang link kecil "Masuk sebagai pengurus" (`#adminBtn`, class `.admin-link`) di footer, di bawah tombol WA. Saat aktif berubah jadi "🔓 Keluar mode pengurus"; panel admin di atas tetap punya tombol Keluar.
 - **Paginasi list**: render 30 kartu dulu (`PAGE=30`), lalu tombol "Tampilkan X lainnya" (`.more`, `window.showMore()`). Counter `shown` di-reset otomatis tiap kombinasi filter/pencarian berubah (dilacak via `lastKey`). Count di atas tetap menghitung total hasil.
 - **Safe-area iOS**: header pakai `padding-top: calc(14px + var(--safe-t))` dengan `--safe-t: env(safe-area-inset-top)` supaya tidak ketutupan Dynamic Island/notch. Ada simulasi kecil: jika halaman berjalan di dalam iframe (`self !== top`, yakni pratinjau), `--safe-t`/`--safe-b` di-set manual 59px/24px — aman untuk produksi karena di tab/HP asli kondisi ini tidak terpenuhi.
 - **Bugfix penting**: `.toast` diberi `pointer-events:none`. Sebelumnya toast tersembunyi (opacity 0) tetap menangkap klik dan menutupi tombol footer sheet di layar sempit → "Simpan perubahan"/"Batal"/"Lanjut" tidak bisa diklik.
 - **Data demo**: 34 sampel bervariasi (31 approved + 3 pending) — 20 kota, semua kategori, termasuk kota di luar daftar (Purwokerto) untuk menguji jalur "Kota lainnya", entri tanpa alamat/kecamatan, dan tanggal menyebar.
-- **Persistence**: mode demo memakai array `items` di memori (di-seed dari konstanta `DEMO`) — data hilang saat refresh, memang untuk menilai tampilan saja. Flag `LIVE` menentukan mode: `LIVE=false` selama `firebaseConfig` masih placeholder. Integrasi Firebase menunggu persetujuan deploy dari Askar.
+- **Persistence**: `firebaseConfig` asli sudah terpasang → `LIVE=true`, data dari Firestore (`listen()`/`db.collection("qris")`). Situs sudah di-deploy ke Firebase Hosting. Mode demo (array `items` di-seed dari konstanta `DEMO`) hanya aktif kalau config kembali jadi placeholder — kode & data demo masih ada di file sebagai fallback pengembangan.
 
 > Catatan: dokumen `rangkuman-proyek-galeri-qris.md` versi lama masih menyebut PIN admin `888999` (client-side). Itu sudah **digantikan** oleh Firebase Auth + Firestore Rules di atas. Anggap PIN sudah usang.
 
 ## Yang Perlu Dilanjutkan
 
-- [ ] Askar kirim `firebaseConfig` asli dari Firebase Console → pasang ke kode (menggantikan placeholder).
-- [ ] Isi `WA_NUMBER` dengan nomor WhatsApp pengurus asli (format `62xxx`) — sekarang masih placeholder `6281234567890`.
-- [ ] Aktifkan integrasi Firebase: isi `firebaseConfig` → otomatis `LIVE=true` dan kode beralih dari array `items` demo ke Firestore (`listen()`/`db.collection("qris")`). Bypass admin & data demo otomatis nonaktif.
-- [ ] Deploy: `npm install -g firebase-tools` → `firebase login` → `firebase init hosting` (public dir: `public`, **bukan** single-page app) → taruh HTML di `public/index.html` → `firebase deploy --only hosting`.
+- [x] `firebaseConfig` asli sudah terpasang di kode (project `wadahqris`) → `LIVE=true`, kode memakai Firestore; bypass admin & data demo otomatis nonaktif.
+- [x] `WA_NUMBER` sudah diisi nomor pengurus asli.
+- [x] Deploy ke Firebase Hosting sudah dilakukan (HTML jadi `public/index.html`; update = `firebase deploy --only hosting`).
 - [ ] Pasang custom domain di Firebase Hosting (atur DNS TXT + A record di provider domain — opsi yang disebut: Niagahoster/Rumahweb).
 - [ ] (Nanti) Pertimbangkan notifikasi admin saat ada upload baru menunggu (mis. email via Firebase Functions, atau cek manual berkala).
 - [ ] (Skala ~100+ QRIS) Pindahkan gambar `dataUrl` base64 dari dokumen Firestore ke **Firebase Storage**, ambil hanya saat detail dibuka. `onSnapshot` sekarang memuat semua field termasuk base64 (~200–450KB/entri sejak kompresi dinaikkan ke 1000px/85%) → 100 entri bisa ≈ 20–45MB sekali muat, padahal list-nya text-first dan gambar cuma dipakai di detail. Makin mendesak sejak batas kompresi dinaikkan. Isu arsitektur data, bukan tampilan.
@@ -67,7 +66,7 @@ Semua wilayah ada di satu objek `const WILAYAH = { "Kota":["Kecamatan", …] }` 
 
 ## File Proyek
 
-- `wadahqris.html` — file HTML tunggal, satu-satunya file aplikasi (HTML + CSS + JS + logo base64 jadi satu). Berisi placeholder `firebaseConfig` dan `WA_NUMBER` yang belum diisi. **Ini file inti proyek** — semua tampilan, warna, komponen, dan logika ada di sini. Untuk kerja desain/UI, file inilah yang dibawa. Inilah satu-satunya file yang di-deploy ke Hosting (jadi `public/index.html`).
+- `wadahqris.html` — file HTML tunggal, satu-satunya file aplikasi (HTML + CSS + JS + logo base64 jadi satu). `firebaseConfig` dan `WA_NUMBER` sudah terisi nilai produksi. **Ini file inti proyek** — semua tampilan, warna, komponen, dan logika ada di sini. Untuk kerja desain/UI, file inilah yang dibawa. Inilah satu-satunya file yang di-deploy ke Hosting (jadi `public/index.html`).
 - `wadahqris-mobile.html` — halaman pratinjau: bingkai iPhone 15 Pro (Dynamic Island, home indicator) yang memuat `wadahqris.html` via iframe. **Alat bantu desain saja — jangan ikut di-deploy.**
 - `wadahqris.backup-YYYYMMDD.html` — salinan cadangan bertanggal (mis. sebelum perubahan besar). Bukan file kerja.
 - `firestore.rules` — Firestore Security Rules. Harus sinkron dengan logika di `wadahqris.html` (mis. rule `update` mengizinkan setujui + perbaiki data).
