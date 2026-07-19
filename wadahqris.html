@@ -1079,7 +1079,7 @@ $("eSave").onclick = async () => {
 $("list").innerHTML=`<div class="skel"></div><div class="skel"></div><div class="skel"></div>`;
 tabs(); fillFilters();
 
-let unsub=null, loaded=false;
+let unsub=null, loaded=false, emptyTimer=null;
 function listen(){
   if(!LIVE) return;
   if(unsub) unsub();
@@ -1088,19 +1088,25 @@ function listen(){
   const q = isAdmin
     ? db.collection("qris").orderBy("uploadedAt","desc")
     : db.collection("qris").where("status","==","approved").orderBy("uploadedAt","desc");
-  /* Pengaman: kalau data server tak kunjung datang (mis. koneksi lambat),
-     jangan nyangkut di skeleton selamanya — tampilkan apa adanya setelah 7 dtk. */
+  /* Pengaman: kalau data tak kunjung datang (koneksi lambat), jangan nyangkut
+     di skeleton selamanya — render apa adanya setelah 7 dtk. */
   const fallback = setTimeout(()=>{ if(!loaded){ loaded=true; fillFilters(); tabs(); render() } }, 7000);
   unsub = q.onSnapshot(snap=>{
-    /* Firestore kerap mengirim snapshot KOSONG dari cache lebih dulu sebelum
-       data server tiba → sekejap tampil "Wadah ini masih kosong". Abaikan
-       snapshot cache-kosong pertama; biarkan skeleton tetap tampil dulu. */
-    if(snap.metadata.fromCache && snap.empty && !loaded) return;
-    loaded=true; clearTimeout(fallback);
+    clearTimeout(fallback); clearTimeout(emptyTimer);
     items = snap.docs.map(d=>({id:d.id,...d.data()}));
-    fillFilters(); tabs(); render();
+    /* Firestore sering mengirim snapshot KOSONG (dari cache) lebih dulu sebelum
+       data server tiba → memicu flash "Wadah ini masih kosong". Selama belum
+       pernah loaded, JANGAN langsung gambar empty-state saat hasil kosong:
+       beri jeda singkat & biarkan skeleton tetap tampil. Kalau data keburu
+       datang, jeda dibatalkan (baris di atas). Kalau setelah jeda tetap kosong,
+       berarti wadah memang kosong → baru render. */
+    if(items.length || loaded){
+      loaded=true; fillFilters(); tabs(); render();
+    }else{
+      emptyTimer = setTimeout(()=>{ loaded=true; fillFilters(); tabs(); render() }, 1500);
+    }
   }, err=>{
-    clearTimeout(fallback); loaded=true;
+    clearTimeout(fallback); clearTimeout(emptyTimer); loaded=true;
     console.error(err);
     $("list").innerHTML="";
     const msg = err.code==="permission-denied" ? "Akses ditolak. Periksa Firestore Rules."
