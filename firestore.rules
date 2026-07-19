@@ -36,9 +36,11 @@ service cloud.firestore {
         request.resource.data.status == 'pending'
 
         // Field yang diizinkan — persis ini, tidak boleh ada tambahan.
+        // Gambar TIDAK lagi di sini; disimpan di koleksi 'qris_media'
+        // supaya dokumen ini ringan & list tidak mengunduh base64.
         && request.resource.data.keys().hasOnly([
              'name','category','city','district','address',
-             'dataUrl','photoUrl','status','uploadedAt'
+             'status','uploadedAt'
            ])
 
         // Wajib ada dan bertipe benar
@@ -57,21 +59,6 @@ service cloud.firestore {
 
         && request.resource.data.address is string
         && request.resource.data.address.size() <= 140
-
-        // Foto QRIS wajib, dan harus benar-benar gambar JPEG base64.
-        // Batas ~600KB mencegah orang menjejalkan file raksasa
-        // dan menghabiskan kuota Firestore kamu.
-        // (600KB + foto pendukung 400KB tetap di bawah batas 1MB/dokumen.
-        //  Klien mengompres ke maks 1000px & menjaga hasil < 560KB.)
-        && request.resource.data.dataUrl is string
-        && request.resource.data.dataUrl.matches('^data:image/jpeg;base64,.*')
-        && request.resource.data.dataUrl.size() < 600000
-
-        // Foto pendukung opsional, batas sama
-        && request.resource.data.photoUrl is string
-        && request.resource.data.photoUrl.size() < 400000
-        && (request.resource.data.photoUrl == ''
-            || request.resource.data.photoUrl.matches('^data:image/jpeg;base64,.*'))
 
         // Timestamp harus dari server, tidak bisa dipalsukan
         && request.resource.data.uploadedAt == request.time;
@@ -120,6 +107,43 @@ service cloud.firestore {
 
       // ── HAPUS / TOLAK (delete) ──────────────────────────────
       // Hanya admin. Titik.
+      allow delete: if isAdmin();
+    }
+
+    // ── GAMBAR (koleksi terpisah, id sama dgn dokumen qris) ─────
+    //  Dipisah dari 'qris' supaya list (text-first) tidak ikut
+    //  mengunduh base64. Gambar hanya diambil saat detail dibuka.
+    match /qris_media/{docId} {
+
+      // ── BACA ────────────────────────────────────────────────
+      // Gambar hanya bisa dibaca kalau entri induknya sudah approved
+      // (atau oleh admin). Antrean pending tetap tak bisa diintip.
+      allow read: if isAdmin()
+        || (exists(/databases/$(database)/documents/qris/$(docId))
+            && get(/databases/$(database)/documents/qris/$(docId)).data.status == 'approved');
+
+      // ── UPLOAD (create) ─────────────────────────────────────
+      // Publik boleh mengunggah gambar saat menitipkan — dengan batas
+      // ukuran & tipe ketat (mencegah file raksasa menghabiskan kuota).
+      // Ditulis sebatch dengan dokumen 'qris' pending oleh klien.
+      allow create: if
+        request.resource.data.keys().hasOnly(['dataUrl','photoUrl'])
+
+        // Foto QRIS wajib, harus benar-benar gambar JPEG base64, < ~600KB.
+        && request.resource.data.dataUrl is string
+        && request.resource.data.dataUrl.matches('^data:image/jpeg;base64,.*')
+        && request.resource.data.dataUrl.size() < 600000
+
+        // Foto pendukung opsional, batas ~400KB.
+        && request.resource.data.photoUrl is string
+        && request.resource.data.photoUrl.size() < 400000
+        && (request.resource.data.photoUrl == ''
+            || request.resource.data.photoUrl.matches('^data:image/jpeg;base64,.*'));
+
+      // Gambar tidak bisa diubah — admin pun tak bisa menukar diam-diam.
+      allow update: if false;
+
+      // Hapus/tolak: hanya admin.
       allow delete: if isAdmin();
     }
 

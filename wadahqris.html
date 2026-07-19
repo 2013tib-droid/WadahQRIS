@@ -197,6 +197,8 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--scan);bo
 .cat-badge svg{width:13px;height:13px;display:block}
 .qris-frame{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:14px}
 .qris-frame img{width:100%;display:block;border-radius:8px}
+.qris-frame.loading{display:flex;align-items:center;justify-content:center;min-height:220px}
+.qris-frame.loading .spin{width:26px;height:26px;border-color:rgba(0,0,0,.12);border-top-color:#8A8878}
 .scan-hint{display:flex;align-items:center;justify-content:center;gap:7px;font-size:13px;font-weight:600;color:var(--scan);background:var(--scan-soft);border-radius:999px;padding:9px;margin-bottom:10px}
 .qris-acts{display:flex;gap:8px;margin-bottom:18px}
 .qris-acts button{
@@ -701,19 +703,36 @@ function render(){
 window.showMore = () => { shown+=PAGE; render() };
 
 /* ── Detail ── */
-window.detail = id => {
-  const i=items.find(x=>x.id===id); if(!i) return;
+let openDetailId=null;
+/* Ambil gambar (dataUrl/photoUrl) dari koleksi terpisah qris_media HANYA saat
+   detail dibuka — supaya list tetap ringan (base64 tidak diunduh massal saat
+   memuat daftar). Hasilnya di-cache di objek item agar buka-ulang & unduh/
+   bagikan tidak mengambil ulang. */
+async function loadMedia(i){
+  if(i.dataUrl!==undefined) return;            // demo / sudah pernah dimuat
+  if(!LIVE){ i.dataUrl=""; i.photoUrl=""; return }
+  const snap = await db.collection("qris_media").doc(i.id).get();
+  const m = snap.exists ? snap.data() : {};
+  i.dataUrl = m.dataUrl || "";
+  i.photoUrl = m.photoUrl || "";
+}
+function detailBody(i){
   const c=CATS[i.category]||CATS.lainnya;
   const d=i.uploadedAt?.toDate ? i.uploadedAt.toDate() : new Date(i.uploadedAt||Date.now());
-  $("dTitle").textContent = i.name||"QRIS";
-  $("dBody").innerHTML=`
-    <div class="cat-badge" style="--cbg:${c.bg};--cfg:${c.c}">${c.i}${c.t}</div>
-    <div class="qris-frame"><img src="${i.dataUrl}" alt="Kode QRIS ${esc(i.name||"")}"></div>
+  const loading = i.dataUrl===undefined;      // gambar belum tiba
+  const frame = loading
+    ? `<div class="qris-frame loading"><span class="spin"></span></div>`
+    : `<div class="qris-frame"><img src="${i.dataUrl}" alt="Kode QRIS ${esc(i.name||"")}"></div>`;
+  const acts = loading ? "" : `
     <div class="scan-hint">📱 Pindai langsung, atau unduh untuk dibuka di aplikasi lain</div>
     <div class="qris-acts">
       <button class="dl" onclick="unduh('${i.id}')">⬇️ Unduh QRIS</button>
       <button onclick="bagikan('${i.id}')">↗️ Bagikan</button>
-    </div>
+    </div>`;
+  return `
+    <div class="cat-badge" style="--cbg:${c.bg};--cfg:${c.c}">${c.i}${c.t}</div>
+    ${frame}
+    ${acts}
     <dl class="meta">
       <div><dt>Kategori</dt><dd>${c.t}</dd></div>
       <div><dt>Kota</dt><dd>${esc(i.city||"—")}</dd></div>
@@ -724,7 +743,18 @@ window.detail = id => {
     </dl>
     ${isAdmin?`<button class="btn ghost" style="margin-top:16px" onclick="editEntry('${i.id}')">✏️ Perbaiki data</button>`:""}
     ${i.photoUrl?`<div class="support"><h3>Foto pendukung</h3><img src="${i.photoUrl}" alt="Foto ${esc(i.name||"")}"></div>`:""}`;
+}
+window.detail = id => {
+  const i=items.find(x=>x.id===id); if(!i) return;
+  openDetailId=id;
+  $("dTitle").textContent = i.name||"QRIS";
+  $("dBody").innerHTML = detailBody(i);        // teks & meta langsung tampil; gambar menyusul
   show("dSheet");
+  if(i.dataUrl===undefined){
+    loadMedia(i)
+      .catch(err=>{ console.error(err); i.dataUrl=""; i.photoUrl=""; toast("Gambar gagal dimuat","err") })
+      .then(()=>{ if(openDetailId===id) $("dBody").innerHTML = detailBody(i) });
+  }
 };
 
 /* ── Unduh & bagikan QRIS ── */
@@ -880,20 +910,28 @@ $("remove2").onclick=()=>{ img2=null; $("file2").value=""; $("prevBox2").hidden=
 async function submit(){
   const nx=$("next");
   nx.disabled=true; nx.innerHTML='<span class="spin"></span> Mengirim…';
-  const entry={
+  const meta={
     name:$("fName").value.trim(),
     category:cat,
     city:cityVal(),
     district: $("distBox").hidden ? "" : $("uDist").value,
     address:$("uAddr").value.trim(),
-    dataUrl:img,
-    photoUrl:img2||"",
     status:"pending",
     uploadedAt: LIVE ? firebase.firestore.FieldValue.serverTimestamp() : Date.now()
   };
+  const media={ dataUrl:img, photoUrl:img2||"" };
   try{
-    if(LIVE) await db.collection("qris").add(entry);
-    else { items.unshift({...entry,id:"local-"+Date.now()}); fillFilters(); tabs(); render() }
+    if(LIVE){
+      /* Teks di koleksi 'qris' (ringan, dimuat di list) + gambar di 'qris_media'
+         dengan id sama (diambil hanya saat detail dibuka). Ditulis sekaligus
+         dalam satu batch agar keduanya konsisten. */
+      const ref=db.collection("qris").doc();
+      const batch=db.batch();
+      batch.set(ref, meta);
+      batch.set(db.collection("qris_media").doc(ref.id), media);
+      await batch.commit();
+    }
+    else { items.unshift({...meta,...media,id:"local-"+Date.now()}); fillFilters(); tabs(); render() }
     hide(); toast("Terima kasih. Menunggu ditinjau admin.","ok");
   }catch(err){
     console.error(err);
@@ -995,7 +1033,11 @@ window.del = async (id,rej) => {
     return toast(rej?"Ditolak dan dihapus":"Dihapus","ok");
   }
   try{
-    await db.collection("qris").doc(id).delete();
+    /* Hapus dokumen teks + gambarnya di qris_media sekaligus. */
+    const batch=db.batch();
+    batch.delete(db.collection("qris").doc(id));
+    batch.delete(db.collection("qris_media").doc(id));
+    await batch.commit();
     toast(rej?"Ditolak dan dihapus":"Dihapus","ok");
   }catch(e){
     console.error(e);
@@ -1079,7 +1121,7 @@ $("eSave").onclick = async () => {
 $("list").innerHTML=`<div class="skel"></div><div class="skel"></div><div class="skel"></div>`;
 tabs(); fillFilters();
 
-let unsub=null, loaded=false, emptyTimer=null;
+let unsub=null, loaded=false;
 function listen(){
   if(!LIVE) return;
   if(unsub) unsub();
@@ -1088,25 +1130,25 @@ function listen(){
   const q = isAdmin
     ? db.collection("qris").orderBy("uploadedAt","desc")
     : db.collection("qris").where("status","==","approved").orderBy("uploadedAt","desc");
-  /* Pengaman: kalau data tak kunjung datang (koneksi lambat), jangan nyangkut
-     di skeleton selamanya — render apa adanya setelah 7 dtk. */
-  const fallback = setTimeout(()=>{ if(!loaded){ loaded=true; fillFilters(); tabs(); render() } }, 7000);
+  /* Pengaman: kalau data tak kunjung datang (koneksi sangat lambat), jangan
+     nyangkut di skeleton selamanya — render apa adanya setelah 10 dtk. */
+  const fallback = setTimeout(()=>{ if(!loaded){ loaded=true; fillFilters(); tabs(); render() } }, 10000);
   unsub = q.onSnapshot(snap=>{
-    clearTimeout(fallback); clearTimeout(emptyTimer);
     items = snap.docs.map(d=>({id:d.id,...d.data()}));
-    /* Firestore sering mengirim snapshot KOSONG (dari cache) lebih dulu sebelum
-       data server tiba → memicu flash "Wadah ini masih kosong". Selama belum
-       pernah loaded, JANGAN langsung gambar empty-state saat hasil kosong:
-       beri jeda singkat & biarkan skeleton tetap tampil. Kalau data keburu
-       datang, jeda dibatalkan (baris di atas). Kalau setelah jeda tetap kosong,
-       berarti wadah memang kosong → baru render. */
-    if(items.length || loaded){
-      loaded=true; fillFilters(); tabs(); render();
-    }else{
-      emptyTimer = setTimeout(()=>{ loaded=true; fillFilters(); tabs(); render() }, 1500);
+    /* JANGAN pernah menampilkan "Wadah kosong" selama masih loading. Di in-app
+       browser Instagram koneksi ke Firestore butuh ~3 dtk; selama itu snapshot
+       bisa datang kosong dari cache/koneksi awal. Tampilkan hasil HANYA kalau:
+       (a) sudah ada data, atau (b) server MEMASTIKAN hasilnya kosong
+       (snapshot bukan dari cache → wadah memang benar-benar kosong).
+       Snapshot kosong dari cache diabaikan → skeleton loading tetap tampil
+       sampai data server tiba. Tidak ada lagi jeda tebakan yang bisa keburu
+       habis lalu memunculkan "kosong". */
+    if(items.length || !snap.metadata.fromCache){
+      loaded=true; clearTimeout(fallback);
+      fillFilters(); tabs(); render();
     }
   }, err=>{
-    clearTimeout(fallback); clearTimeout(emptyTimer); loaded=true;
+    clearTimeout(fallback); loaded=true;
     console.error(err);
     $("list").innerHTML="";
     const msg = err.code==="permission-denied" ? "Akses ditolak. Periksa Firestore Rules."
