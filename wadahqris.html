@@ -723,8 +723,7 @@ window.detail = id => {
       ${i.status==="pending"?`<div><dt>Status</dt><dd style="color:var(--warn)">⏳ Menunggu persetujuan</dd></div>`:""}
     </dl>
     ${isAdmin?`<button class="btn ghost" style="margin-top:16px" onclick="editEntry('${i.id}')">✏️ Perbaiki data</button>`:""}
-    ${i.photoUrl?`<div class="support"><h3>Foto pendukung</h3><img src="${i.photoUrl}" alt="Foto ${esc(i.name||"")}"></div>`:""}
-    <div class="note"><span>⚠️</span><div><b>Periksa sebelum membayar</b>Pastikan nama penerima yang muncul di aplikasimu sesuai dengan tujuanmu.</div></div>`;
+    ${i.photoUrl?`<div class="support"><h3>Foto pendukung</h3><img src="${i.photoUrl}" alt="Foto ${esc(i.name||"")}"></div>`:""}`;
   show("dSheet");
 };
 
