@@ -1079,7 +1079,7 @@ $("eSave").onclick = async () => {
 $("list").innerHTML=`<div class="skel"></div><div class="skel"></div><div class="skel"></div>`;
 tabs(); fillFilters();
 
-let unsub=null;
+let unsub=null, loaded=false;
 function listen(){
   if(!LIVE) return;
   if(unsub) unsub();
@@ -1088,10 +1088,19 @@ function listen(){
   const q = isAdmin
     ? db.collection("qris").orderBy("uploadedAt","desc")
     : db.collection("qris").where("status","==","approved").orderBy("uploadedAt","desc");
+  /* Pengaman: kalau data server tak kunjung datang (mis. koneksi lambat),
+     jangan nyangkut di skeleton selamanya — tampilkan apa adanya setelah 7 dtk. */
+  const fallback = setTimeout(()=>{ if(!loaded){ loaded=true; fillFilters(); tabs(); render() } }, 7000);
   unsub = q.onSnapshot(snap=>{
+    /* Firestore kerap mengirim snapshot KOSONG dari cache lebih dulu sebelum
+       data server tiba → sekejap tampil "Wadah ini masih kosong". Abaikan
+       snapshot cache-kosong pertama; biarkan skeleton tetap tampil dulu. */
+    if(snap.metadata.fromCache && snap.empty && !loaded) return;
+    loaded=true; clearTimeout(fallback);
     items = snap.docs.map(d=>({id:d.id,...d.data()}));
     fillFilters(); tabs(); render();
   }, err=>{
+    clearTimeout(fallback); loaded=true;
     console.error(err);
     $("list").innerHTML="";
     const msg = err.code==="permission-denied" ? "Akses ditolak. Periksa Firestore Rules."
