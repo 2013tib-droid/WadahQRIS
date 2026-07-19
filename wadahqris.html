@@ -457,6 +457,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--scan);bo
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics-compat.js"></script>
 <script>
 /* ════════ ISI CONFIG FIREBASE DI SINI ════════ */
 const firebaseConfig = {
@@ -493,6 +494,10 @@ try{
   if(!firebaseConfig.projectId.startsWith("PASTE")){
     firebase.initializeApp(firebaseConfig);
     db=firebase.firestore(); auth=firebase.auth(); LIVE=true;
+    /* Statistik pengunjung (Google Analytics) — hanya kunjungan asli,
+       bukan pratinjau iframe (wadahqris-mobile.html). Data dilihat di
+       Firebase Console → Analytics. */
+    if(window.self===window.top) firebase.analytics();
   }
 }catch(e){ console.warn("Firebase belum siap:",e) }
 
