@@ -543,7 +543,7 @@ const LAIN = "Lainnya";
 /* Nilai kota khusus untuk QRIS yang tempatnya tidak diketahui.
    Disimpan sebagai teks kota biasa → lolos validasi rules (2–40 huruf)
    dan otomatis muncul sebagai grup sendiri di filter. */
-const NOLOC = "Tanpa lokasi";
+const NOLOC = "Others";
 
 /* Kategori: label + warna + ikon. `i` dipakai di chip, kartu, dan badge detail. */
 const CATS = {
@@ -573,7 +573,7 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape")hide()});
 function fillFilters(){
   const ap = items.filter(i=>i.status==="approved");
   const cities = [...new Set(ap.map(i=>i.city).filter(Boolean))].sort();
-  /* "Tanpa lokasi" selalu di urutan paling bawah, bukan diselipkan alfabetis */
+  /* "Others" (lokasi tidak diketahui) selalu di urutan paling bawah, bukan diselipkan alfabetis */
   if(cities.includes(NOLOC)) cities.push(cities.splice(cities.indexOf(NOLOC),1)[0]);
   $("fCity").innerHTML = `<option value="">📍 Semua kota</option>` +
     cities.map(c=>`<option value="${esc(c)}" ${fCity===c?"selected":""}>${c===NOLOC?"❓ ":""}${esc(c)}</option>`).join("");
@@ -662,7 +662,7 @@ function render(){
       : fCat==="pending"
       ? `<div class="empty"><div class="big">✅</div><h3>Antrean bersih</h3><p>Semua titipan sudah kamu tinjau. Terima kasih sudah menjaga wadah ini.</p></div>`
       : (fCity
-        ? `<div class="empty"><div class="big">🗺️</div><h3>${fCity===NOLOC?"Belum ada QRIS tanpa lokasi":`Belum ada di ${esc(fDist||fCity)}`}</h3><p>Coba pilih kota atau kategori lain.</p></div>`
+        ? `<div class="empty"><div class="big">🗺️</div><h3>${fCity===NOLOC?"Belum ada QRIS di Others":`Belum ada di ${esc(fDist||fCity)}`}</h3><p>Coba pilih kota atau kategori lain.</p></div>`
         : `<div class="empty"><div class="big">📭</div><h3>Wadah ini masih kosong</h3><p>Belum ada QRIS yang dititipkan.</p></div>`);
     return;
   }
@@ -670,7 +670,7 @@ function render(){
   c.textContent = fQuery
     ? `${L.length} hasil untuk "${fQuery}"`
     : fCat==="pending" ? `${L.length} menunggu ditinjau`
-    : fCity===NOLOC ? `${L.length} QRIS tanpa lokasi`
+    : fCity===NOLOC ? `${L.length} QRIS di Others`
     : `${L.length} QRIS${fCity?` di ${fDist||fCity}`:""}`;
   el.innerHTML = L.slice(0,shown).map(i=>{
     const cat=CATS[i.category]||CATS.lainnya, pend=i.status==="pending";
@@ -796,7 +796,7 @@ $("uploadBtn").onclick=startUpload;
 
 function fillUpCity(){
   const keys=Object.keys(WILAYAH).filter(k=>k!==LAIN).sort();
-  $("uCity").innerHTML = `<option value="">— Pilih kota —</option>` + keys.map(k=>`<option>${k}</option>`).join("") + `<option value="${LAIN}">Kota lainnya…</option>` + `<option value="${NOLOC}">❓ Tidak tahu / tanpa lokasi</option>`;
+  $("uCity").innerHTML = `<option value="">— Pilih kota —</option>` + keys.map(k=>`<option>${k}</option>`).join("") + `<option value="${LAIN}">Kota lainnya…</option>` + `<option value="${NOLOC}">❓ Others — lokasi tidak diketahui</option>`;
   $("uDist").innerHTML=""; $("distBox").hidden=true;
 }
 $("uCity").onchange = e => {
@@ -1031,7 +1031,7 @@ window.editEntry = id => {
   $("eCity").innerHTML = `<option value="">— Pilih kota —</option>`
     + keys.map(k=>`<option ${i.city===k?"selected":""}>${k}</option>`).join("")
     + `<option value="${LAIN}" ${(!known && i.city)?"selected":""}>Kota lainnya…</option>`
-    + `<option value="${NOLOC}" ${i.city===NOLOC?"selected":""}>❓ Tidak tahu / tanpa lokasi</option>`;
+    + `<option value="${NOLOC}" ${i.city===NOLOC?"selected":""}>❓ Others — lokasi tidak diketahui</option>`;
   const useOther = !known && !!i.city;
   $("eCityOtherBox").hidden = !useOther;
   $("eCityOther").value = useOther ? i.city : "";
@@ -1133,7 +1133,7 @@ const DEMO = [
   {name:"Warung Sarapan Mbok Darmi", category:"umkm", city:"Purwokerto", district:"", address:"Jl. Overste Isdiman No. 5"},
   {name:"Es Pisang Ijo Kanre", category:"umkm", city:"Denpasar", district:"Denpasar Barat", address:"Jl. Teuku Umar No. 88"},
   {name:"Pempek Cek Ayu", category:"umkm", city:"Palembang", district:"Ilir Timur I", address:"Jl. Jend. Sudirman Km 4"},
-  {name:"Kotak Amal Digital Musala Al-Hidayah", category:"masjid", city:"Tanpa lokasi", district:"", address:""}
+  {name:"Kotak Amal Digital Musala Al-Hidayah", category:"masjid", city:"Others", district:"", address:""}
 ].map((d,n)=>({id:"demo"+n, status:"approved", dataUrl:DEMO_QR, uploadedAt:Date.now()-n*31e6, ...d}));
 
 if(LIVE) listen();
