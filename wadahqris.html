@@ -460,8 +460,13 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--scan);bo
 <script>
 /* ════════ ISI CONFIG FIREBASE DI SINI ════════ */
 const firebaseConfig = {
-  apiKey:"PASTE_API_KEY", authDomain:"PASTE.firebaseapp.com", projectId:"PASTE_PROJECT_ID",
-  storageBucket:"PASTE.appspot.com", messagingSenderId:"PASTE", appId:"PASTE"
+  apiKey:"AIzaSyANEKi_MQvQiYcWWJKrb5Lh1aSaZuEXrjg",
+  authDomain:"wadahqris.firebaseapp.com",
+  projectId:"wadahqris",
+  storageBucket:"wadahqris.firebasestorage.app",
+  messagingSenderId:"43580154816",
+  appId:"1:43580154816:web:b5bcab46423c331adc1e25",
+  measurementId:"G-96LGL6C4T8"
 };
 
 /* Keamanan ditegakkan di Firestore Rules (server), bukan di sini.
@@ -470,7 +475,7 @@ const firebaseConfig = {
 /* ════════ NOMOR WHATSAPP PENGURUS ════════
    Ganti dengan nomor WA-mu. Format: kode negara tanpa "+" atau "0" di depan.
    Contoh nomor 0812-3456-7890 → tulis "6281234567890". */
-const WA_NUMBER = "6281234567890";
+const WA_NUMBER = "6285117378557";
 function waLink(text){ return `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(text||"")}` }
 function hubungiWA(text){
   window.open(waLink(text || "Halo WadahQRIS, saya ingin bertanya."), "_blank", "noopener");
@@ -813,7 +818,7 @@ document.querySelectorAll(".cat").forEach(b=>b.onclick=()=>{
 });
 
 /* Gambar */
-function compress(f, max, q, cb){
+function compress(f, max, q, cap, cb){
   if(!f.type.startsWith("image/")) return toast("File itu bukan gambar","err");
   const r=new FileReader();
   r.onload=ev=>{
@@ -825,7 +830,11 @@ function compress(f, max, q, cb){
       const cx=cv.getContext("2d");
       cx.fillStyle="#fff"; cx.fillRect(0,0,cv.width,cv.height);
       cx.drawImage(im,0,0,cv.width,cv.height);
-      cb(cv.toDataURL("image/jpeg",q));
+      // Turunkan kualitas bertahap bila masih melebihi batas ukuran
+      // dataUrl di firestore.rules — supaya upload tidak ditolak server.
+      let d=cv.toDataURL("image/jpeg",q);
+      while(d.length>cap && q>.5){ q-=.06; d=cv.toDataURL("image/jpeg",q) }
+      cb(d);
     };
     im.onerror=()=>toast("Gambar tidak bisa dibaca","err");
     im.src=ev.target.result;
@@ -834,13 +843,13 @@ function compress(f, max, q, cb){
 }
 $("drop").onclick=()=>$("file").click();
 $("retake").onclick=()=>$("file").click();
-$("file").onchange=e=>{ const f=e.target.files[0]; if(f) compress(f,500,.72,d=>{ img=d; $("prevImg").src=d; $("prevBox").hidden=false; $("drop").hidden=true; paint() }) };
+$("file").onchange=e=>{ const f=e.target.files[0]; if(f) compress(f,1000,.85,560000,d=>{ img=d; $("prevImg").src=d; $("prevBox").hidden=false; $("drop").hidden=true; paint() }) };
 ["dragover","dragleave","drop"].forEach(ev=>$("drop").addEventListener(ev,e=>{
   e.preventDefault(); $("drop").classList.toggle("hot",ev==="dragover");
-  if(ev==="drop"&&e.dataTransfer.files[0]) compress(e.dataTransfer.files[0],500,.72,d=>{ img=d; $("prevImg").src=d; $("prevBox").hidden=false; $("drop").hidden=true; paint() });
+  if(ev==="drop"&&e.dataTransfer.files[0]) compress(e.dataTransfer.files[0],1000,.85,560000,d=>{ img=d; $("prevImg").src=d; $("prevBox").hidden=false; $("drop").hidden=true; paint() });
 }));
 $("drop2").onclick=()=>$("file2").click();
-$("file2").onchange=e=>{ const f=e.target.files[0]; if(f) compress(f,420,.65,d=>{ img2=d; $("prevImg2").src=d; $("prevBox2").hidden=false; $("drop2").hidden=true }) };
+$("file2").onchange=e=>{ const f=e.target.files[0]; if(f) compress(f,900,.8,380000,d=>{ img2=d; $("prevImg2").src=d; $("prevBox2").hidden=false; $("drop2").hidden=true }) };
 $("remove2").onclick=()=>{ img2=null; $("file2").value=""; $("prevBox2").hidden=true; $("drop2").hidden=false };
 
 async function submit(){
@@ -1059,7 +1068,10 @@ function listen(){
   }, err=>{
     console.error(err);
     $("list").innerHTML="";
-    $("empty").innerHTML=`<div class="empty"><div class="big">⚠️</div><h3>Wadah tidak bisa dimuat</h3><p>${err.code==="permission-denied"?"Akses ditolak. Periksa Firestore Rules.":"Periksa koneksi internetmu."}</p></div>`;
+    const msg = err.code==="permission-denied" ? "Akses ditolak. Periksa Firestore Rules."
+      : err.code==="failed-precondition" ? "Index Firestore belum dibuat. Buka Firebase Console → Firestore → Indexes (composite: status ASC + uploadedAt DESC)."
+      : "Periksa koneksi internetmu.";
+    $("empty").innerHTML=`<div class="empty"><div class="big">⚠️</div><h3>Wadah tidak bisa dimuat</h3><p>${msg}</p></div>`;
   });
 }
 /* Data contoh — HANYA saat Firebase belum dipasang, supaya tampilan bisa dinilai.

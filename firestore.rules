@@ -12,13 +12,13 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ── GANTI dengan UID admin kamu ──────────────────────────
-    // Ambil dari: Firebase Console → Authentication → Users → kolom "User UID"
+    // ── UID admin ────────────────────────────────────────────
+    // Dari: Firebase Console → Authentication → Users → kolom "User UID"
     // Boleh lebih dari satu kalau pengurusnya banyak.
     function isAdmin() {
       return request.auth != null
           && request.auth.uid in [
-               'GANTI_DENGAN_UID_ADMIN'
+               'AQnv50adjaZzw9ObgelOemNECS42'
              ];
     }
 
@@ -59,11 +59,13 @@ service cloud.firestore {
         && request.resource.data.address.size() <= 140
 
         // Foto QRIS wajib, dan harus benar-benar gambar JPEG base64.
-        // Batas ~400KB mencegah orang menjejalkan file raksasa
+        // Batas ~600KB mencegah orang menjejalkan file raksasa
         // dan menghabiskan kuota Firestore kamu.
+        // (600KB + foto pendukung 400KB tetap di bawah batas 1MB/dokumen.
+        //  Klien mengompres ke maks 1000px & menjaga hasil < 560KB.)
         && request.resource.data.dataUrl is string
         && request.resource.data.dataUrl.matches('^data:image/jpeg;base64,.*')
-        && request.resource.data.dataUrl.size() < 400000
+        && request.resource.data.dataUrl.size() < 600000
 
         // Foto pendukung opsional, batas sama
         && request.resource.data.photoUrl is string

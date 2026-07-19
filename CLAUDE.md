@@ -19,7 +19,7 @@ Pemilik: Askar. Komunikasi dalam Bahasa Indonesia, permintaan perubahan biasanya
 ### Struktur data dokumen `qris`
 Field per entry: `id`, `name`, `address`, `category` (🕌 Masjid / 🛍️ UMKM / 📌 Lainnya), `dataUrl` (base64 JPEG), `uploadedAt`, `status` (`pending` / `approved`).
 
-Gambar QRIS otomatis di-resize & dikompres ke JPEG (maks 500px, kualitas 72%) sebelum disimpan → ~50–100KB per gambar.
+Gambar QRIS otomatis di-resize & dikompres ke JPEG (maks 1000px, kualitas 85%) sebelum disimpan → ~150–350KB per gambar. Dinaikkan dari 500px/72% karena hasil unduhan terasa kecil/buram untuk dicetak; 1000px setara file asli dari penyedia QRIS dan tajam dicetak sampai ±8 cm @300 DPI. Foto pendukung (opsional) di-resize maks 900px kualitas 80% (dinaikkan dari 420px/65% yang terasa terlalu buram). `compress()` punya pengaman: kualitas turun bertahap (step 6%, minimal 50%) sampai base64 < `cap` (QRIS 560K, foto pendukung 380K) agar tidak ditolak `firestore.rules` (batas `dataUrl` 600K, `photoUrl` 400K). Total maks per dokumen ±940K, di bawah batas 1MB Firestore.
 
 ## Kondisi Saat Ini (paling baru)
 
@@ -50,7 +50,7 @@ Gambar QRIS otomatis di-resize & dikompres ke JPEG (maks 500px, kualitas 72%) se
 - [ ] Deploy: `npm install -g firebase-tools` → `firebase login` → `firebase init hosting` (public dir: `public`, **bukan** single-page app) → taruh HTML di `public/index.html` → `firebase deploy --only hosting`.
 - [ ] Pasang custom domain di Firebase Hosting (atur DNS TXT + A record di provider domain — opsi yang disebut: Niagahoster/Rumahweb).
 - [ ] (Nanti) Pertimbangkan notifikasi admin saat ada upload baru menunggu (mis. email via Firebase Functions, atau cek manual berkala).
-- [ ] (Skala ~100+ QRIS) Pindahkan gambar `dataUrl` base64 dari dokumen Firestore ke **Firebase Storage**, ambil hanya saat detail dibuka. `onSnapshot` sekarang memuat semua field termasuk base64 (~70KB/entri) → 100 entri ≈ 5–7MB sekali muat, padahal list-nya text-first dan gambar cuma dipakai di detail. Isu arsitektur data, bukan tampilan.
+- [ ] (Skala ~100+ QRIS) Pindahkan gambar `dataUrl` base64 dari dokumen Firestore ke **Firebase Storage**, ambil hanya saat detail dibuka. `onSnapshot` sekarang memuat semua field termasuk base64 (~200–450KB/entri sejak kompresi dinaikkan ke 1000px/85%) → 100 entri bisa ≈ 20–45MB sekali muat, padahal list-nya text-first dan gambar cuma dipakai di detail. Makin mendesak sejak batas kompresi dinaikkan. Isu arsitektur data, bukan tampilan.
 
 ## Menambah kota / kecamatan
 
