@@ -661,6 +661,14 @@ window.goPending = () => { fCat="pending"; fCity=""; fDist=""; fillFilters(); ta
 
 function render(){
   adminPanel();
+  /* Selama data pertama belum tiba (loaded=false), JANGAN pernah gambar
+     empty-state — tampilkan skeleton. Pengaman pamungkas: apa pun yang memanggil
+     render() saat masih memuat tidak akan memunculkan "Wadah kosong". */
+  if(!loaded && !items.length){
+    $("list").innerHTML=`<div class="skel"></div><div class="skel"></div><div class="skel"></div>`;
+    $("empty").innerHTML=""; $("count").textContent="";
+    return;
+  }
   const key=[fCat,fCity,fDist,fQuery].join("|");
   if(key!==lastKey){ lastKey=key; shown=PAGE }
   const L=visible(), el=$("list"), e=$("empty"), c=$("count");
@@ -1038,6 +1046,10 @@ window.del = async (id,rej) => {
     batch.delete(db.collection("qris").doc(id));
     batch.delete(db.collection("qris_media").doc(id));
     await batch.commit();
+    /* Perbarui lokal langsung — karena listen() sengaja mengabaikan snapshot
+       kosong (anti-flash), menghapus entri TERAKHIR tak akan ter-refleksi dari
+       snapshot; jadi update di sini biar admin lihat perubahannya seketika. */
+    items=items.filter(x=>x.id!==id); fillFilters(); tabs(); render();
     toast(rej?"Ditolak dan dihapus":"Dihapus","ok");
   }catch(e){
     console.error(e);
@@ -1121,7 +1133,7 @@ $("eSave").onclick = async () => {
 $("list").innerHTML=`<div class="skel"></div><div class="skel"></div><div class="skel"></div>`;
 tabs(); fillFilters();
 
-let unsub=null, loaded=false, emptyConfirm=null;
+let unsub=null, loaded=false;
 function listen(){
   if(!LIVE) return;
   if(unsub) unsub();
@@ -1130,31 +1142,22 @@ function listen(){
   const q = isAdmin
     ? db.collection("qris").orderBy("uploadedAt","desc")
     : db.collection("qris").where("status","==","approved").orderBy("uploadedAt","desc");
-  const paint = () => { loaded=true; clearTimeout(fallback); clearTimeout(emptyConfirm); fillFilters(); tabs(); render() };
-  /* Pengaman keras: apa pun yang terjadi, jangan nyangkut di skeleton > 10 dtk. */
-  const fallback = setTimeout(paint, 10000);
+  const paint = () => { loaded=true; clearTimeout(fallback); fillFilters(); tabs(); render() };
+  /* "Wadah kosong" HANYA boleh muncul lewat pengaman ini. Sengaja panjang (7 dtk)
+     supaya di koneksi lambat (in-app browser Instagram sering ~2-3 dtk) data
+     selalu keburu datang lebih dulu → empty-state tak pernah berkedip. Kalau
+     setelah 7 dtk benar-benar belum ada data, berarti wadah memang kosong. */
+  const fallback = setTimeout(paint, 7000);
   unsub = q.onSnapshot(snap=>{
-    items = snap.docs.map(d=>({id:d.id,...d.data()}));
-
-    /* ADA data → tampilkan seketika, batalkan semua penungguan. */
-    if(items.length){ paint(); return }
-
-    /* HASIL KOSONG. Dua kemungkinan:
-       (a) snapshot kosong dari CACHE/koneksi awal — masih loading, abaikan
-           total (biarkan skeleton). Ini yang sering muncul di detik-detik awal.
-       (b) snapshot kosong dari SERVER (fromCache=false) — server sudah menjawab.
-           TAPI di in-app browser Instagram (long-polling) server kerap mengirim
-           satu snapshot kosong TEPAT sebelum data menyusul → kalau langsung
-           digambar, muncul flash "Wadah kosong" ~1 dtk. Maka jangan langsung:
-           tunggu konfirmasi 1,5 dtk. Kalau data menyusul (baris di atas jalan &
-           mem-paint), timer dibatalkan. Kalau setelah 1,5 dtk tetap kosong,
-           berarti wadah memang kosong → baru tampilkan empty-state.
-       Skeleton tetap tampil selama menunggu. */
-    if(!snap.metadata.fromCache && !loaded && !emptyConfirm){
-      emptyConfirm = setTimeout(paint, 1500);
-    }
+    const next = snap.docs.map(d=>({id:d.id,...d.data()}));
+    /* Render HANYA saat ADA data. Snapshot KOSONG — dari cache, dari koneksi
+       awal, MAUPUN snapshot re-sync long-polling IG yang kerap kosong sesaat —
+       DIABAIKAN: items lama dipertahankan (sticky), tampilan tidak berubah,
+       jadi TIDAK ADA jalan bagi flash "Wadah kosong" muncul saat data sedang
+       dalam perjalanan. Wadah yang memang kosong ditangani timer fallback. */
+    if(next.length){ items=next; paint(); }
   }, err=>{
-    clearTimeout(fallback); clearTimeout(emptyConfirm); loaded=true;
+    clearTimeout(fallback); loaded=true;
     console.error(err);
     $("list").innerHTML="";
     const msg = err.code==="permission-denied" ? "Akses ditolak. Periksa Firestore Rules."
