@@ -245,6 +245,47 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--scan);bo
 }
 .ap-cta:active{transform:scale(.98)}
 
+/* Panel admin: blok pengunjung (counter privat) */
+.ap-vis{margin-top:12px;background:#1D1E19;border-radius:10px;padding:13px 14px}
+.ap-vis-t{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#9C9A8E}
+.ap-vis-today{display:flex;align-items:baseline;gap:7px;margin-top:6px}
+.ap-vis-today .v{font-family:'Sora',sans-serif;font-size:30px;font-weight:800;line-height:1}
+.ap-vis-today .k{font-size:12.5px;color:#9C9A8E}
+.ap-bars{display:flex;align-items:flex-end;gap:6px;height:64px;margin-top:18px;border-bottom:1px solid rgba(255,255,255,.12)}
+.ap-bcol{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;position:relative}
+.ap-bar{width:100%;max-width:26px;background:#2FA866;border-radius:4px 4px 0 0;min-height:2px}
+.ap-bcol .bl{position:absolute;left:50%;transform:translateX(-50%);font-size:10.5px;font-weight:700;font-variant-numeric:tabular-nums}
+.ap-days{display:flex;gap:6px;margin-top:5px}
+.ap-days span{flex:1;text-align:center;font-size:10px;color:#9C9A8E}
+.ap-vis-row{display:flex;gap:1px;background:rgba(255,255,255,.12);border-radius:8px;overflow:hidden;margin-top:12px}
+.ap-vis-cell{flex:1;background:#22231D;padding:8px 10px;text-align:center}
+.ap-vis-cell .v{font-family:'Sora',sans-serif;font-size:15px;font-weight:800;font-variant-numeric:tabular-nums}
+.ap-vis-cell .k{font-size:10.5px;color:#9C9A8E;margin-top:1px}
+.ap-vis-note{font-size:10.5px;color:#9C9A8E;margin-top:10px;line-height:1.45}
+
+/* Sheet statistik wadah (publik) */
+.st-hero{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.st-hero .v{font-family:'Sora',sans-serif;font-size:38px;font-weight:800;line-height:1}
+.st-hero .k{font-size:13.5px;color:var(--sub)}
+.st-chips{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px}
+.st-chip{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 4px;text-align:center}
+.st-chip .v{font-family:'Sora',sans-serif;font-size:16px;font-weight:800;font-variant-numeric:tabular-nums}
+.st-chip .k{font-size:10.5px;font-weight:600;margin-top:2px;white-space:nowrap}
+.st-sec{margin-top:24px}
+.st-t{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.st-bars{display:flex;align-items:flex-end;gap:8px;height:80px;margin-top:18px;border-bottom:1px solid var(--line)}
+.st-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;position:relative}
+.st-bar{width:100%;max-width:30px;background:#1E8552;border-radius:4px 4px 0 0;min-height:2px}
+.st-col .bl{position:absolute;left:50%;transform:translateX(-50%);font-size:10.5px;font-weight:700;font-variant-numeric:tabular-nums}
+.st-days{display:flex;gap:8px;margin-top:5px}
+.st-days span{flex:1;text-align:center;font-size:10px;color:var(--muted)}
+.st-row{display:grid;grid-template-columns:118px 1fr 26px;align-items:center;gap:9px;margin-top:8px}
+.st-row .l{font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.st-row .track{height:12px;background:var(--line-soft);border-radius:6px;overflow:hidden}
+.st-row .fill{height:100%;background:#1E8552;border-radius:6px}
+.st-row .n{font-size:12px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+.st-note{font-size:12px;color:var(--muted);margin-top:20px;line-height:1.5}
+
 /* Kartu antrean lebih tegas */
 .row-card.pend{border-color:#F2DDC2;background:#FFFDF9}
 
@@ -293,6 +334,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--scan);bo
   <div class="list" id="list"></div>
   <div id="empty"></div>
   <footer class="site-foot">
+    <button class="wa-btn" id="statBtn">📊 Statistik Wadah</button>
     <button class="wa-btn" id="waBtn">💬 Hubungi kami</button>
     <button class="admin-link" id="adminBtn">Masuk sebagai pengurus</button>
   </footer>
@@ -452,6 +494,13 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--scan);bo
   </div>
 </div>
 
+<!-- Statistik wadah (publik) -->
+<div class="sheet" id="sSheet" role="dialog" aria-modal="true" aria-labelledby="sTitle">
+  <div class="grip"></div>
+  <div class="sheet-head"><h2 id="sTitle">📊 Statistik Wadah</h2><button class="x" data-close aria-label="Tutup">✕</button></div>
+  <div class="sheet-body" id="sBody"></div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -553,6 +602,11 @@ const CHEV = '<svg viewBox="0 0 7 12" width="7" height="12" fill="none"><path d=
 
 let items=[], fCat="semua", fCity="", fDist="", fQuery="", isAdmin=false, adminEmail="";
 const PAGE=30; let shown=PAGE, lastKey="";
+/* Counter pengunjung: peta { "YYYY-MM-DD": jumlah } dari koleksi `visits` (hanya admin yang membacanya) */
+let visits={};
+const HARI=["Min","Sen","Sel","Rab","Kam","Jum","Sab"];
+const BULAN=["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
+const dayKey = d => d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
 const $ = id => document.getElementById(id);
 const esc = s => String(s??"").replace(/[<>&"]/g,c=>({"<":"&lt;",">":"&gt;","&":"&amp;",'"':"&quot;"}[c]));
 
@@ -617,6 +671,35 @@ function visible(){
   }
   return L;
 }
+/* Blok "👀 Pengunjung" di panel admin — dari counter harian `visits` */
+function visBlock(){
+  const t=new Date(), tKey=dayKey(t);
+  const days=[...Array(7)].map((_,x)=>{
+    const d=new Date(t); d.setDate(d.getDate()-6+x);
+    const k=dayKey(d); return {k, w:HARI[d.getDay()], n:visits[k]||0};
+  });
+  const max=Math.max(...days.map(d=>d.n),1);
+  const week=days.reduce((s,d)=>s+d.n,0);
+  let month=0, total=0; const mp=tKey.slice(0,7);
+  for(const k in visits){ total+=visits[k]; if(k.startsWith(mp)) month+=visits[k] }
+  const fmt=n=>n.toLocaleString("id-ID");
+  return `
+    <div class="ap-vis">
+      <div class="ap-vis-t">👀 Pengunjung</div>
+      <div class="ap-vis-today"><span class="v">${fmt(days[6].n)}</span><span class="k">perangkat hari ini</span></div>
+      <div class="ap-bars">${days.map((d,x)=>{
+        const h=Math.round(d.n/max*100);
+        return `<div class="ap-bcol" title="${d.k} · ${fmt(d.n)}">${x===6?`<span class="bl" style="bottom:calc(${h}% + 3px)">${fmt(d.n)}</span>`:""}<div class="ap-bar" style="height:${h}%"></div></div>`;
+      }).join("")}</div>
+      <div class="ap-days">${days.map(d=>`<span>${d.w}</span>`).join("")}</div>
+      <div class="ap-vis-row">
+        <div class="ap-vis-cell"><div class="v">${fmt(week)}</div><div class="k">7 hari</div></div>
+        <div class="ap-vis-cell"><div class="v">${fmt(month)}</div><div class="k">Bulan ini</div></div>
+        <div class="ap-vis-cell"><div class="v">${fmt(total)}</div><div class="k">Sejak dipasang</div></div>
+      </div>
+      <div class="ap-vis-note">Perkiraan — 1 hitungan per perangkat per hari, tanpa menyimpan data pribadi. Detail (kota, realtime) di Google Analytics.</div>
+    </div>`;
+}
 function adminPanel(){
   const el=$("adminPanel");
   if(!isAdmin){ el.innerHTML=""; return }
@@ -640,6 +723,7 @@ function adminPanel(){
         <div class="ap-stat"><div class="v">${appr}</div><div class="k">Tayang</div></div>
         <div class="ap-stat"><div class="v">${kota}</div><div class="k">Kota</div></div>
       </div>
+      ${visBlock()}
       ${pend && fCat!=="pending" ? `<button class="ap-cta" onclick="goPending()">⏳ Tinjau ${pend} titipan sekarang</button>` : ""}
     </div>`;
 }
@@ -685,6 +769,49 @@ function render(){
   }).join("") + (L.length>shown ? `<button class="more" onclick="showMore()">Tampilkan ${L.length-shown} lainnya</button>` : "");
 }
 window.showMore = () => { shown+=PAGE; render() };
+
+/* ── Statistik Wadah (publik) — dihitung dari data yang sudah dimuat ── */
+window.openStats = () => {
+  const ap=items.filter(i=>i.status==="approved");
+  const kota=new Set(ap.map(i=>i.city).filter(Boolean)).size;
+  const cats=Object.keys(CATS).map(k=>({...CATS[k], n:ap.filter(i=>i.category===k).length}));
+
+  /* QRIS baru per bulan (6 bulan terakhir, dari uploadedAt) */
+  const now=new Date();
+  const bulan=[...Array(6)].map((_,x)=>{
+    const d=new Date(now.getFullYear(), now.getMonth()-5+x, 1);
+    return {y:d.getFullYear(), m:d.getMonth(), l:BULAN[d.getMonth()], n:0};
+  });
+  ap.forEach(i=>{
+    const d=i.uploadedAt?.toDate ? i.uploadedAt.toDate() : new Date(i.uploadedAt||0);
+    const b=bulan.find(x=>x.y===d.getFullYear() && x.m===d.getMonth()); if(b) b.n++;
+  });
+  const bMax=Math.max(...bulan.map(b=>b.n),1);
+
+  /* Kota dengan QRIS terbanyak */
+  const per={}; ap.forEach(i=>{ if(i.city) per[i.city]=(per[i.city]||0)+1 });
+  const top=Object.entries(per).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const tMax=top.length ? top[0][1] : 1;
+
+  $("sBody").innerHTML = `
+    <div class="st-hero"><span class="v">${ap.length}</span><span class="k">QRIS terverifikasi · ${kota} kota</span></div>
+    <div class="st-chips">${cats.map(c=>`<div class="st-chip"><div class="v">${c.n}</div><div class="k" style="color:${c.c}">${c.t}</div></div>`).join("")}</div>
+    <div class="st-sec">
+      <div class="st-t">QRIS baru per bulan</div>
+      <div class="st-bars">${bulan.map(b=>{
+        const h=Math.round(b.n/bMax*100);
+        return `<div class="st-col" title="${b.l} · ${b.n}">${(b.n===bMax && b.n>0)?`<span class="bl" style="bottom:calc(${h}% + 3px)">${b.n}</span>`:""}<div class="st-bar" style="height:${h}%"></div></div>`;
+      }).join("")}</div>
+      <div class="st-days">${bulan.map(b=>`<span>${b.l}</span>`).join("")}</div>
+    </div>
+    ${top.length ? `<div class="st-sec">
+      <div class="st-t">Kota dengan QRIS terbanyak</div>
+      ${top.map(([c,n])=>`<div class="st-row"><span class="l">${esc(c)}</span><div class="track"><div class="fill" style="width:${Math.round(n/tMax*100)}%"></div></div><span class="n">${n}</span></div>`).join("")}
+    </div>` : ""}
+    <p class="st-note">Statistik dihitung dari isi wadah yang sudah terverifikasi dan diperbarui otomatis.</p>`;
+  show("sSheet");
+};
+$("statBtn").onclick = () => openStats();
 
 /* ── Detail ── */
 window.detail = id => {
@@ -895,6 +1022,14 @@ async function submit(){
 function demoAdmin(on){
   isAdmin = on;
   adminEmail = on ? "admin@demo (bypass testing)" : "";
+  if(on && !Object.keys(visits).length){
+    /* BYPASS testing: contoh angka pengunjung supaya blok 👀 bisa dinilai */
+    const t=new Date();
+    for(let i=0;i<30;i++){
+      const d=new Date(t); d.setDate(d.getDate()-i);
+      visits[dayKey(d)] = Math.max(1, Math.round(16+11*Math.sin(i/2.4)+(i*7)%9));
+    }
+  }
   $("adminBtn").className = "admin-link" + (isAdmin?" on":"");
   $("adminBtn").textContent = isAdmin ? "🔓 Keluar mode pengurus" : "Masuk sebagai pengurus";
   if(!isAdmin && fCat==="pending") fCat="semua";
@@ -953,6 +1088,7 @@ if(LIVE){
     $("adminBtn").textContent = isAdmin ? "🔓 Keluar mode pengurus" : "Masuk sebagai pengurus";
     if(!isAdmin && fCat==="pending") fCat="semua";
     listen();       // ganti query: publik vs admin
+    listenVisits(); // counter pengunjung hanya dibaca saat admin
     tabs(); render();
     if(isAdmin){
       const p=items.filter(i=>i.status==="pending").length;
@@ -1086,6 +1222,36 @@ function listen(){
     $("empty").innerHTML=`<div class="empty"><div class="big">⚠️</div><h3>Wadah tidak bisa dimuat</h3><p>${msg}</p></div>`;
   });
 }
+/* ── Counter pengunjung ──
+   `visits` = 1 dokumen per tanggal, 1 field angka. Publik hanya boleh
+   menambah 1 (ditegakkan firestore.rules); membacanya hanya admin. */
+let unsubV=null;
+function listenVisits(){
+  if(!LIVE) return;
+  if(unsubV){ unsubV(); unsubV=null }
+  if(!isAdmin){ visits={}; return }
+  unsubV = db.collection("visits").onSnapshot(snap=>{
+    visits={};
+    snap.docs.forEach(d=>{ visits[d.id]=d.data().n||0 });
+    adminPanel();
+  }, err=>console.warn("visits:", err));
+}
+
+/* Catat 1 kunjungan per perangkat per hari (penanda di localStorage).
+   Tidak menyimpan IP atau data pribadi — hanya menaikkan angka harian.
+   Dilewati di pratinjau iframe supaya angka tidak terkontaminasi. */
+function catatKunjungan(){
+  if(!LIVE || window.self!==window.top) return;
+  const k=dayKey(new Date());
+  let sudah=null; try{ sudah=localStorage.getItem("wq-visit") }catch(e){}
+  if(sudah===k) return;
+  db.collection("visits").doc(k)
+    .set({n:firebase.firestore.FieldValue.increment(1)},{merge:true})
+    .then(()=>{ try{ localStorage.setItem("wq-visit",k) }catch(e){} })
+    .catch(()=>{}); // gagal tak apa — bukan data penting
+}
+catatKunjungan();
+
 /* Data contoh — HANYA saat Firebase belum dipasang, supaya tampilan bisa dinilai.
    Begitu firebaseConfig diisi, LIVE=true dan blok ini tidak pernah jalan. */
 const DEMO_QR = "data:image/svg+xml;charset=utf8," + encodeURIComponent(
