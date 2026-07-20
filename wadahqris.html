@@ -1121,7 +1121,7 @@ $("eSave").onclick = async () => {
 $("list").innerHTML=`<div class="skel"></div><div class="skel"></div><div class="skel"></div>`;
 tabs(); fillFilters();
 
-let unsub=null, loaded=false;
+let unsub=null, loaded=false, emptyConfirm=null;
 function listen(){
   if(!LIVE) return;
   if(unsub) unsub();
@@ -1130,25 +1130,31 @@ function listen(){
   const q = isAdmin
     ? db.collection("qris").orderBy("uploadedAt","desc")
     : db.collection("qris").where("status","==","approved").orderBy("uploadedAt","desc");
-  /* Pengaman: kalau data tak kunjung datang (koneksi sangat lambat), jangan
-     nyangkut di skeleton selamanya — render apa adanya setelah 10 dtk. */
-  const fallback = setTimeout(()=>{ if(!loaded){ loaded=true; fillFilters(); tabs(); render() } }, 10000);
+  const paint = () => { loaded=true; clearTimeout(fallback); clearTimeout(emptyConfirm); fillFilters(); tabs(); render() };
+  /* Pengaman keras: apa pun yang terjadi, jangan nyangkut di skeleton > 10 dtk. */
+  const fallback = setTimeout(paint, 10000);
   unsub = q.onSnapshot(snap=>{
     items = snap.docs.map(d=>({id:d.id,...d.data()}));
-    /* JANGAN pernah menampilkan "Wadah kosong" selama masih loading. Di in-app
-       browser Instagram koneksi ke Firestore butuh ~3 dtk; selama itu snapshot
-       bisa datang kosong dari cache/koneksi awal. Tampilkan hasil HANYA kalau:
-       (a) sudah ada data, atau (b) server MEMASTIKAN hasilnya kosong
-       (snapshot bukan dari cache → wadah memang benar-benar kosong).
-       Snapshot kosong dari cache diabaikan → skeleton loading tetap tampil
-       sampai data server tiba. Tidak ada lagi jeda tebakan yang bisa keburu
-       habis lalu memunculkan "kosong". */
-    if(items.length || !snap.metadata.fromCache){
-      loaded=true; clearTimeout(fallback);
-      fillFilters(); tabs(); render();
+
+    /* ADA data → tampilkan seketika, batalkan semua penungguan. */
+    if(items.length){ paint(); return }
+
+    /* HASIL KOSONG. Dua kemungkinan:
+       (a) snapshot kosong dari CACHE/koneksi awal — masih loading, abaikan
+           total (biarkan skeleton). Ini yang sering muncul di detik-detik awal.
+       (b) snapshot kosong dari SERVER (fromCache=false) — server sudah menjawab.
+           TAPI di in-app browser Instagram (long-polling) server kerap mengirim
+           satu snapshot kosong TEPAT sebelum data menyusul → kalau langsung
+           digambar, muncul flash "Wadah kosong" ~1 dtk. Maka jangan langsung:
+           tunggu konfirmasi 1,5 dtk. Kalau data menyusul (baris di atas jalan &
+           mem-paint), timer dibatalkan. Kalau setelah 1,5 dtk tetap kosong,
+           berarti wadah memang kosong → baru tampilkan empty-state.
+       Skeleton tetap tampil selama menunggu. */
+    if(!snap.metadata.fromCache && !loaded && !emptyConfirm){
+      emptyConfirm = setTimeout(paint, 1500);
     }
   }, err=>{
-    clearTimeout(fallback); loaded=true;
+    clearTimeout(fallback); clearTimeout(emptyConfirm); loaded=true;
     console.error(err);
     $("list").innerHTML="";
     const msg = err.code==="permission-denied" ? "Akses ditolak. Periksa Firestore Rules."
