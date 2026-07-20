@@ -40,6 +40,7 @@ service cloud.firestore {
         // supaya dokumen ini ringan & list tidak mengunduh base64.
         && request.resource.data.keys().hasOnly([
              'name','category','city','district','address',
+             'waNumber','instagram',
              'status','uploadedAt'
            ])
 
@@ -59,6 +60,19 @@ service cloud.firestore {
 
         && request.resource.data.address is string
         && request.resource.data.address.size() <= 140
+
+        // Kontak opsional — divalidasi HANYA bila ada. Yang disimpan cuma
+        // datanya (nomor digit / username IG), bukan URL; klien merangkai
+        // wa.me & instagram.com sendiri.
+        && (!('waNumber' in request.resource.data)
+            || (request.resource.data.waNumber is string
+                && (request.resource.data.waNumber == ''
+                    || request.resource.data.waNumber.matches('^[0-9]{8,16}$'))))
+        && (!('instagram' in request.resource.data)
+            || (request.resource.data.instagram is string
+                && request.resource.data.instagram.size() <= 30
+                && (request.resource.data.instagram == ''
+                    || request.resource.data.instagram.matches('^[A-Za-z0-9._]+$'))))
 
         // Timestamp harus dari server, tidak bisa dipalsukan
         && request.resource.data.uploadedAt == request.time;
@@ -85,7 +99,7 @@ service cloud.firestore {
         // (b) Perbaiki data
         (
           request.resource.data.diff(resource.data)
-            .affectedKeys().hasOnly(['name','category','city','district','address'])
+            .affectedKeys().hasOnly(['name','category','city','district','address','waNumber','instagram'])
 
           && request.resource.data.name is string
           && request.resource.data.name.size() >= 2
@@ -102,6 +116,16 @@ service cloud.firestore {
 
           && request.resource.data.address is string
           && request.resource.data.address.size() <= 140
+
+          && (!('waNumber' in request.resource.data)
+              || (request.resource.data.waNumber is string
+                  && (request.resource.data.waNumber == ''
+                      || request.resource.data.waNumber.matches('^[0-9]{8,16}$'))))
+          && (!('instagram' in request.resource.data)
+              || (request.resource.data.instagram is string
+                  && request.resource.data.instagram.size() <= 30
+                  && (request.resource.data.instagram == ''
+                      || request.resource.data.instagram.matches('^[A-Za-z0-9._]+$'))))
         )
       );
 
