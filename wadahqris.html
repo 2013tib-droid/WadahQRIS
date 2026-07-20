@@ -215,6 +215,13 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--scan);bo
 .support{margin-top:18px}
 .support h3{font-size:13px;color:var(--muted);font-weight:600;margin-bottom:8px;font-family:'Public Sans',sans-serif}
 .support img{width:100%;border-radius:var(--r);border:1px solid var(--line);display:block}
+.contacts{margin-top:18px}
+.contacts h3{font-size:13px;color:var(--muted);font-weight:600;margin-bottom:8px;font-family:'Public Sans',sans-serif}
+.contact-row{display:flex;gap:8px;flex-wrap:wrap}
+.contact-btn{display:inline-flex;align-items:center;gap:7px;min-height:46px;padding:0 16px;border-radius:11px;font-weight:600;font-size:14px;border:1px solid transparent;text-decoration:none}
+.contact-btn:active{transform:scale(.98)}
+.contact-btn.wa{background:var(--scan-soft);color:var(--scan)}
+.contact-btn.ig{background:#FCEEF4;color:#B4387E}
 .note{display:flex;gap:9px;background:var(--warn-soft);border:1px solid #F2DDC2;border-radius:11px;padding:12px 13px;font-size:13px;line-height:1.45;color:#7A3E0B;margin-top:16px}
 .note b{display:block;margin-bottom:2px}
 
@@ -328,6 +335,14 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--scan);bo
           <button class="cat" data-cat="umkm" aria-pressed="false" style="--cbg:#E7EEF2;--cfg:#3E6B8A"><svg viewBox="0 0 16 16" fill="none"><path d="M5 6.5a3 3 0 0 1 6 0" stroke="currentColor" stroke-width="1.5"/><rect x="3.2" y="6.2" width="9.6" height="7.6" rx="1.3" fill="currentColor"/></svg><span class="t">UMKM</span></button>
           <button class="cat" data-cat="lainnya" aria-pressed="false" style="--cbg:#F2E7EC;--cfg:#8A5A6B"><svg viewBox="0 0 16 16"><rect x="4.5" y="4.5" width="7" height="7" transform="rotate(45 8 8)" fill="currentColor"/></svg><span class="t">Lainnya</span></button>
         </div>
+      </div>
+      <div class="field">
+        <label for="uWa">Nomor WhatsApp <span class="opt">— opsional</span></label>
+        <input type="tel" id="uWa" inputmode="tel" placeholder="0812-3456-7890" maxlength="20" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="uIg">Instagram <span class="opt">— opsional</span></label>
+        <input type="text" id="uIg" placeholder="@namamasjid" maxlength="40" autocomplete="off" autocapitalize="off" spellcheck="false">
       </div>
     </div>
 
@@ -445,6 +460,14 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--scan);bo
       <label for="eAddr">Alamat lengkap <span class="opt">— opsional</span></label>
       <textarea id="eAddr" maxlength="140" placeholder="Jl. Merdeka No. 12, RT 03 / RW 05"></textarea>
     </div>
+    <div class="field">
+      <label for="eWa">Nomor WhatsApp <span class="opt">— opsional</span></label>
+      <input type="tel" id="eWa" inputmode="tel" maxlength="20" autocomplete="off" placeholder="0812-3456-7890">
+    </div>
+    <div class="field">
+      <label for="eIg">Instagram <span class="opt">— opsional</span></label>
+      <input type="text" id="eIg" maxlength="40" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="@namamasjid">
+    </div>
   </div>
   <div class="sheet-foot">
     <div class="row">
@@ -478,11 +501,31 @@ const firebaseConfig = {
    Ganti dengan nomor WA-mu. Format: kode negara tanpa "+" atau "0" di depan.
    Contoh nomor 0812-3456-7890 → tulis "6281234567890". */
 const WA_NUMBER = "6285117378557";
-function waLink(text){ return `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(text||"")}` }
+function waLink(text, num){ return `https://wa.me/${num||WA_NUMBER}?text=${encodeURIComponent(text||"")}` }
 function hubungiWA(text){
   window.open(waLink(text || "Halo WadahQRIS, saya ingin bertanya."), "_blank", "noopener");
 }
 document.getElementById("waBtn").onclick = () => hubungiWA();
+
+/* ── Kontak per-entri (opsional): WhatsApp & Instagram ──
+   Yang disimpan hanya DATANYA (nomor/username), bukan URL mentah dari user —
+   kita sendiri yang merangkai wa.me / instagram.com, jadi aman dari href jahat.
+   Kembalian: "" = kosong (sah, tanpa link), null = format salah, string = bersih. */
+function normWA(v){
+  let s=String(v||"").replace(/[^\d+]/g,"");
+  if(!s) return "";
+  if(s[0]==="+") s=s.slice(1);
+  if(s[0]==="0") s="62"+s.slice(1);
+  return /^\d{8,16}$/.test(s) ? s : null;
+}
+function normIG(v){
+  let s=String(v||"").trim();
+  if(!s) return "";
+  s=s.replace(/^https?:\/\//i,"").replace(/^(www\.)?instagram\.com\/?/i,"")
+     .replace(/^@/,"").replace(/[\/?#].*$/,"").trim();
+  return /^[A-Za-z0-9._]{1,30}$/.test(s) ? s : null;
+}
+function igLink(u){ return `https://instagram.com/${u}` }
 
 /* Simulasi safe-area saat dibingkai pratinjau (iframe). Di HP asli otomatis pakai env(). */
 if(window.self!==window.top){
@@ -724,6 +767,13 @@ async function loadMedia(i){
   i.dataUrl = m.dataUrl || "";
   i.photoUrl = m.photoUrl || "";
 }
+function contactBlock(i){
+  // href dirangkai dari data tervalidasi (nomor = digit, ig = username), jadi aman.
+  const b=[];
+  if(i.waNumber) b.push(`<a class="contact-btn wa" target="_blank" rel="noopener" href="${waLink("Halo, saya melihat QRIS "+(i.name||"")+" di WadahQRIS.", i.waNumber)}">💬 WhatsApp</a>`);
+  if(i.instagram) b.push(`<a class="contact-btn ig" target="_blank" rel="noopener" href="${igLink(i.instagram)}">📷 @${esc(i.instagram)}</a>`);
+  return b.length ? `<div class="contacts"><h3>Hubungi pemilik</h3><div class="contact-row">${b.join("")}</div></div>` : "";
+}
 function detailBody(i){
   const c=CATS[i.category]||CATS.lainnya;
   const d=i.uploadedAt?.toDate ? i.uploadedAt.toDate() : new Date(i.uploadedAt||Date.now());
@@ -749,6 +799,7 @@ function detailBody(i){
       <div><dt>Ditambahkan</dt><dd>${d.toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"})}</dd></div>
       ${i.status==="pending"?`<div><dt>Status</dt><dd style="color:var(--warn)">⏳ Menunggu persetujuan</dd></div>`:""}
     </dl>
+    ${contactBlock(i)}
     ${isAdmin?`<button class="btn ghost" style="margin-top:16px" onclick="editEntry('${i.id}')">✏️ Perbaiki data</button>`:""}
     ${i.photoUrl?`<div class="support"><h3>Foto pendukung</h3><img src="${i.photoUrl}" alt="Foto ${esc(i.name||"")}"></div>`:""}`;
 }
@@ -829,6 +880,7 @@ let step=1, img=null, img2=null, cat=null;
 window.startUpload = () => {
   step=1; img=null; img2=null; cat=null;
   $("fName").value=""; $("uAddr").value=""; $("uCityOther").value="";
+  $("uWa").value=""; $("uIg").value="";
   $("file").value=""; $("file2").value="";
   $("prevBox").hidden=true; $("drop").hidden=false;
   $("prevBox2").hidden=true; $("drop2").hidden=false;
@@ -916,6 +968,9 @@ $("file2").onchange=e=>{ const f=e.target.files[0]; if(f) compress(f,900,.8,3800
 $("remove2").onclick=()=>{ img2=null; $("file2").value=""; $("prevBox2").hidden=true; $("drop2").hidden=false };
 
 async function submit(){
+  const wa=normWA($("uWa").value), ig=normIG($("uIg").value);
+  if(wa===null) return toast("Nomor WhatsApp tidak valid — cukup angka","err");
+  if(ig===null) return toast("Username Instagram tidak valid","err");
   const nx=$("next");
   nx.disabled=true; nx.innerHTML='<span class="spin"></span> Mengirim…';
   const meta={
@@ -924,6 +979,8 @@ async function submit(){
     city:cityVal(),
     district: $("distBox").hidden ? "" : $("uDist").value,
     address:$("uAddr").value.trim(),
+    waNumber:wa,
+    instagram:ig,
     status:"pending",
     uploadedAt: LIVE ? firebase.firestore.FieldValue.serverTimestamp() : Date.now()
   };
@@ -1076,6 +1133,8 @@ window.editEntry = id => {
   eId=id; eCat=i.category||"lainnya";
   $("eName").value=i.name||"";
   $("eAddr").value=i.address||"";
+  $("eWa").value=i.waNumber||"";
+  $("eIg").value=i.instagram?("@"+i.instagram):"";
   /* chip kategori dibangun dari CATS supaya konsisten dengan form upload */
   $("eCats").innerHTML = Object.keys(CATS).map(k=>{
     const c=CATS[k];
@@ -1107,10 +1166,15 @@ $("eSave").onclick = async () => {
   if(!eId) return;
   const name=$("eName").value.trim();
   if(name.length<2) return toast("Nama minimal 2 huruf","err");
+  const wa=normWA($("eWa").value), ig=normIG($("eIg").value);
+  if(wa===null) return toast("Nomor WhatsApp tidak valid — cukup angka","err");
+  if(ig===null) return toast("Username Instagram tidak valid","err");
   const patch = {
     name, category:eCat, city:eCityVal(),
     district: $("eDistBox").hidden ? "" : $("eDist").value,
-    address: $("eAddr").value.trim()
+    address: $("eAddr").value.trim(),
+    waNumber: wa,
+    instagram: ig
   };
   const b=$("eSave"); b.disabled=true; b.innerHTML='<span class="spin"></span> Menyimpan…';
   try{
@@ -1171,9 +1235,9 @@ function listen(){
 const DEMO_QR = "data:image/svg+xml;charset=utf8," + encodeURIComponent(
   `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240"><defs><pattern id="p" width="16" height="16" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="8" height="16" fill="#EFECE3"/><rect x="8" width="8" height="16" fill="#F7F5EF"/></pattern></defs><rect width="240" height="240" fill="url(#p)"/><text x="120" y="115" text-anchor="middle" font-family="monospace" font-size="12" fill="#8A8878">qris tersimpan</text><text x="120" y="133" text-anchor="middle" font-family="monospace" font-size="12" fill="#8A8878">saat pendaftaran</text></svg>`);
 const DEMO = [
-  {name:"Masjid Al-Ikhlas", category:"masjid", city:"Bandung (Kota)", district:"Sukajadi", address:"Jl. Cihampelas No. 45, Cipaganti"},
-  {name:"Warung Pak Slamet", category:"umkm", city:"Bandung (Kota)", district:"Sukajadi", address:"Jl. Sukajadi No. 102"},
-  {name:"Yayasan Kasih Anak Bangsa", category:"yayasan", city:"Yogyakarta", district:"Gondokusuman", address:"Jl. Kaliurang Km 7"},
+  {name:"Masjid Al-Ikhlas", category:"masjid", city:"Bandung (Kota)", district:"Sukajadi", address:"Jl. Cihampelas No. 45, Cipaganti", waNumber:"6281234567890", instagram:"masjidalikhlas.bdg"},
+  {name:"Warung Pak Slamet", category:"umkm", city:"Bandung (Kota)", district:"Sukajadi", address:"Jl. Sukajadi No. 102", instagram:"warungpakslamet"},
+  {name:"Yayasan Kasih Anak Bangsa", category:"yayasan", city:"Yogyakarta", district:"Gondokusuman", address:"Jl. Kaliurang Km 7", waNumber:"628112223334"},
   {name:"Masjid Jami' An-Nur", category:"masjid", city:"Jakarta Selatan", district:"Tebet", address:"Jl. Tebet Barat Dalam Raya No. 8"},
   {name:"Kopi Kenangan Ibu", category:"umkm", city:"Jakarta Selatan", district:"Kebayoran Baru", address:"Jl. Senopati No. 21"},
   {name:"Masjid Raya Baiturrahman", category:"masjid", city:"Semarang (Kota)", district:"Banyumanik", address:"Jl. Setiabudi No. 111"},
