@@ -149,18 +149,20 @@ main{padding:16px;max-width:1000px;margin-inline:auto}
 
 /* Fields */
 .field{margin-bottom:16px}
-label{display:block;font-size:14px;font-weight:600;margin-bottom:6px}
-label .opt{font-weight:400;color:var(--muted);font-size:13px}
-input[type=text],textarea,select.inp{
-  width:100%;min-height:52px;padding:13px 14px;border:1px solid var(--line);
-  border-radius:11px;background:var(--card);font-size:16px;
+label{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;margin-bottom:7px}
+label .opt{font-weight:600;color:var(--muted);font-size:10.5px;letter-spacing:.03em;text-transform:uppercase;background:var(--line-soft);padding:3px 9px;border-radius:999px;line-height:1}
+input[type=text],input[type=tel],textarea,select.inp{
+  width:100%;min-height:52px;padding:14px 15px;border:1.5px solid transparent;
+  border-radius:14px;background-color:var(--line-soft);font-size:16px;
+  transition:background-color .16s ease,border-color .16s ease,box-shadow .16s ease;
 }
+input[type=text]::placeholder,input[type=tel]::placeholder,textarea::placeholder{color:#A8A695}
 select.inp{appearance:none;padding-right:40px;
   background-image:url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236E6C61' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-position:right 14px center;background-size:16px}
 select.inp:disabled{background-color:#F2F0E9;color:#A5A296}
 textarea{min-height:72px;resize:none;line-height:1.4}
-input:focus,textarea:focus,select:focus{outline:none;border-color:var(--scan);box-shadow:0 0 0 3px var(--scan-soft)}
+input:focus,textarea:focus,select:focus{outline:none;background-color:var(--card);border-color:var(--scan);box-shadow:0 0 0 3px var(--scan-soft)}
 .cats{display:flex;flex-wrap:wrap;gap:8px}
 .cat{border:1.4px solid var(--line);background:var(--card);border-radius:999px;padding:10px 15px;min-height:44px;display:flex;align-items:center;gap:7px;color:#3A3830}
 .cat svg{width:15px;height:15px;display:block;flex:none}
@@ -337,11 +339,11 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--scan);bo
         </div>
       </div>
       <div class="field">
-        <label for="uWa">Nomor WhatsApp <span class="opt">— opsional</span></label>
-        <input type="tel" id="uWa" inputmode="tel" placeholder="0812-3456-7890" maxlength="20" autocomplete="off">
+        <label for="uWa">Nomor WhatsApp <span class="opt">opsional</span></label>
+        <input type="tel" id="uWa" inputmode="tel" placeholder="081234567890" maxlength="20" autocomplete="off">
       </div>
       <div class="field">
-        <label for="uIg">Instagram <span class="opt">— opsional</span></label>
+        <label for="uIg">Instagram <span class="opt">opsional</span></label>
         <input type="text" id="uIg" placeholder="@namamasjid" maxlength="40" autocomplete="off" autocapitalize="off" spellcheck="false">
       </div>
     </div>
@@ -364,7 +366,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--scan);bo
         <input type="text" id="uCityOther" placeholder="Contoh: Purwokerto" maxlength="40">
       </div>
       <div class="field">
-        <label for="uAddr">Alamat lengkap <span class="opt">— opsional</span></label>
+        <label for="uAddr">Alamat lengkap <span class="opt">opsional</span></label>
         <textarea id="uAddr" placeholder="Jl. Merdeka No. 12, RT 03 / RW 05" maxlength="140"></textarea>
       </div>
     </div>
@@ -457,15 +459,15 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--scan);bo
       <select class="inp" id="eDist"></select>
     </div>
     <div class="field">
-      <label for="eAddr">Alamat lengkap <span class="opt">— opsional</span></label>
+      <label for="eAddr">Alamat lengkap <span class="opt">opsional</span></label>
       <textarea id="eAddr" maxlength="140" placeholder="Jl. Merdeka No. 12, RT 03 / RW 05"></textarea>
     </div>
     <div class="field">
-      <label for="eWa">Nomor WhatsApp <span class="opt">— opsional</span></label>
-      <input type="tel" id="eWa" inputmode="tel" maxlength="20" autocomplete="off" placeholder="0812-3456-7890">
+      <label for="eWa">Nomor WhatsApp <span class="opt">opsional</span></label>
+      <input type="tel" id="eWa" inputmode="tel" maxlength="20" autocomplete="off" placeholder="081234567890">
     </div>
     <div class="field">
-      <label for="eIg">Instagram <span class="opt">— opsional</span></label>
+      <label for="eIg">Instagram <span class="opt">opsional</span></label>
       <input type="text" id="eIg" maxlength="40" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="@namamasjid">
     </div>
   </div>
