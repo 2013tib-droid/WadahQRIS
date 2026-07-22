@@ -134,6 +134,33 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // ── COUNTER PENGUNJUNG (koleksi 'visits') ──────────────────
+    // Satu dokumen per tanggal (ID: YYYY-MM-DD) berisi satu field
+    // angka `n`. Tidak ada IP atau data pribadi yang disimpan.
+    //
+    // Publik hanya bisa MENAMBAH 1 — tidak bisa membaca, mengurangi,
+    // melompat (+100), menambah field lain, atau memakai nama dokumen
+    // di luar format tanggal. Membaca angkanya hanya admin.
+    match /visits/{day} {
+
+      allow read: if isAdmin();
+
+      // Kunjungan pertama pada tanggal itu → dokumen baru, n harus 1.
+      allow create: if day.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && request.resource.data.keys().hasOnly(['n'])
+        && request.resource.data.n is int
+        && request.resource.data.n == 1;
+
+      // Kunjungan berikutnya → hanya boleh naik tepat 1.
+      allow update: if day.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && request.resource.data.keys().hasOnly(['n'])
+        && request.resource.data.n is int
+        && request.resource.data.n == resource.data.n + 1;
+
+      // Bersih-bersih (kalau perlu) hanya admin.
+      allow delete: if isAdmin();
+    }
+
     // ── GAMBAR (koleksi terpisah, id sama dgn dokumen qris) ─────
     //  Dipisah dari 'qris' supaya list (text-first) tidak ikut
     //  mengunduh base64. Gambar hanya diambil saat detail dibuka.
