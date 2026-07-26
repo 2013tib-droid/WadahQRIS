@@ -295,6 +295,7 @@ input:focus,textarea:focus,select:focus{outline:none;background-color:var(--card
 .st-row .track{height:12px;background:var(--line-soft);border-radius:6px;overflow:hidden}
 .st-row .fill{height:100%;background:#1E8552;border-radius:6px}
 .st-row .n{font-size:12px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+.st-more{font-size:11.5px;color:var(--muted);margin-top:10px}
 .st-note{font-size:12px;color:var(--muted);margin-top:20px;line-height:1.5}
 
 /* Kartu antrean lebih tegas */
@@ -847,12 +848,15 @@ window.showMore = () => { shown+=PAGE; render() };
 /* ── Statistik Wadah (publik) — dihitung dari data yang sudah dimuat ── */
 window.openStats = () => {
   const ap=items.filter(i=>i.status==="approved");
-  const kota=new Set(ap.map(i=>i.city).filter(Boolean)).size;
+  /* "Others" = lokasi tidak diketahui → bukan kota, jangan ikut dihitung */
+  const isKota=i=>i.city && i.city!==NOLOC;
+  const kota=new Set(ap.filter(isKota).map(i=>i.city)).size;
   const cats=Object.keys(CATS).map(k=>({...CATS[k], n:ap.filter(i=>i.category===k).length}));
 
-  /* QRIS baru per bulan (6 bulan terakhir, dari uploadedAt) */
+  /* QRIS baru per bulan (maks 6 bulan terakhir; bulan kosong di awal dipotong
+     supaya grafik mulai dari bulan pertama yang benar-benar ada isinya) */
   const now=new Date();
-  const bulan=[...Array(6)].map((_,x)=>{
+  let bulan=[...Array(6)].map((_,x)=>{
     const d=new Date(now.getFullYear(), now.getMonth()-5+x, 1);
     return {y:d.getFullYear(), m:d.getMonth(), l:BULAN[d.getMonth()], n:0};
   });
@@ -860,12 +864,22 @@ window.openStats = () => {
     const d=i.uploadedAt?.toDate ? i.uploadedAt.toDate() : new Date(i.uploadedAt||0);
     const b=bulan.find(x=>x.y===d.getFullYear() && x.m===d.getMonth()); if(b) b.n++;
   });
+  const mulai=bulan.findIndex(b=>b.n>0);
+  if(mulai>0) bulan=bulan.slice(mulai);
+  else if(mulai<0) bulan=bulan.slice(-1);
   const bMax=Math.max(...bulan.map(b=>b.n),1);
 
-  /* Kota dengan QRIS terbanyak */
-  const per={}; ap.forEach(i=>{ if(i.city) per[i.city]=(per[i.city]||0)+1 });
-  const top=Object.entries(per).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  /* Kota dengan QRIS terbanyak (top 5 + sisanya diringkas agar totalnya utuh) */
+  const per={}; ap.forEach(i=>{ if(isKota(i)) per[i.city]=(per[i.city]||0)+1 });
+  const urut=Object.entries(per).sort((a,b)=>b[1]-a[1]);
+  const top=urut.slice(0,5);
   const tMax=top.length ? top[0][1] : 1;
+  const sisaKota=urut.slice(5).reduce((s,[,n])=>s+n,0);
+  const tanpaLokasi=ap.length - urut.reduce((s,[,n])=>s+n,0);
+  const sisaTeks=[
+    sisaKota ? `${sisaKota} QRIS di ${urut.length-5} kota lain` : "",
+    tanpaLokasi ? `${tanpaLokasi} belum diketahui lokasinya` : ""
+  ].filter(Boolean).join(" · ");
 
   $("sBody").innerHTML = `
     <div class="st-hero"><span class="v">${ap.length}</span><span class="k">QRIS terverifikasi · ${kota} kota</span></div>
@@ -878,9 +892,10 @@ window.openStats = () => {
       }).join("")}</div>
       <div class="st-days">${bulan.map(b=>`<span>${b.l}</span>`).join("")}</div>
     </div>
-    ${top.length ? `<div class="st-sec">
+    ${(top.length||sisaTeks) ? `<div class="st-sec">
       <div class="st-t">Kota dengan QRIS terbanyak</div>
       ${top.map(([c,n])=>`<div class="st-row"><span class="l">${esc(c)}</span><div class="track"><div class="fill" style="width:${Math.round(n/tMax*100)}%"></div></div><span class="n">${n}</span></div>`).join("")}
+      ${sisaTeks ? `<p class="st-more">+ ${sisaTeks}</p>` : ""}
     </div>` : ""}
     <p class="st-note">Statistik dihitung dari isi wadah yang sudah terverifikasi dan diperbarui otomatis.</p>`;
   show("sSheet");
