@@ -1414,7 +1414,11 @@ function catatKunjungan(){
   db.collection("visits").doc(k)
     .set({n:firebase.firestore.FieldValue.increment(1)},{merge:true})
     .then(()=>{ try{ localStorage.setItem("wq-visit",k) }catch(e){} })
-    .catch(()=>{}); // gagal tak apa — bukan data penting
+    /* Gagal tidak mengganggu pengunjung (tidak ada toast/UI), tapi HARUS
+       terlihat di Console: pernah terjadi counter 0 berhari-hari karena
+       error di sini ditelan diam-diam. `permission-denied` = blok
+       /visits/{day} di firestore.rules belum di-publish. */
+    .catch(err=>console.warn("catat kunjungan gagal:", err.code||err));
 }
 catatKunjungan();
 
