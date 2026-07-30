@@ -1,2 +1,5 @@
 # Cache tool desain (berisi gambar base64, bukan source)
 prototype/.image-slots.state.json
+
+# Hasil salinan otomatis predeploy (lihat firebase.json) — bukan source
+public/
