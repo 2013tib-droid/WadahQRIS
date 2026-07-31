@@ -84,4 +84,5 @@ Semua wilayah ada di satu objek `const WILAYAH = { "Kota":["Kecamatan", …] }` 
 - `wadahqris-mobile.html` — halaman pratinjau: bingkai iPhone 15 Pro (Dynamic Island, home indicator) yang memuat `wadahqris.html` via iframe. **Alat bantu desain saja — jangan ikut di-deploy.**
 - `wadahqris.backup-YYYYMMDD.html` — salinan cadangan bertanggal (mis. sebelum perubahan besar). Bukan file kerja.
 - `firestore.rules` — Firestore Security Rules. Harus sinkron dengan logika di `wadahqris.html` (mis. rule `update` mengizinkan setujui + perbaiki data). Kini ada **dua blok**: `qris` (teks; create publik pending, tanpa field gambar) dan `qris_media` (gambar; create publik dengan batas ukuran/tipe, read hanya bila entri induk approved via `get()`, immutable, delete admin).
+- `scripts/siapkan-public.js` — dijalankan otomatis oleh `predeploy` di `firebase.json`: menyalin `wadahqris.html` → `public/index.html` sebelum deploy hosting. Sengaja berupa file skrip, bukan perintah satu baris, karena `mkdir -p`/`cp` tidak ada di cmd.exe Windows (pengurus deploy dari Windows).
 - `CARA-PASANG-KEAMANAN.md` — panduan setup keamanan (Firebase Auth + Rules).
