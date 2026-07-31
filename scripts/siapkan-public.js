@@ -20,7 +20,16 @@ const tujuan = path.join(root, "public", "index.html");
 
 if (!fs.existsSync(sumber)) {
   console.error("Gagal: wadahqris.html tidak ditemukan di " + root);
-  console.error("Jalankan `firebase deploy` dari folder yang berisi firebase.json.");
+  /* Sering terjadi di Windows: Explorer menyembunyikan ekstensi, jadi
+     `wadahqris.html.txt` (hasil Ctrl+S, bukan "Download raw file") tampak
+     bernama benar. Tunjukkan nama sebenarnya daripada menyuruh menebak. */
+  const mirip = fs.readdirSync(root).filter(f => /wadahqris/i.test(f));
+  if (mirip.length) {
+    console.error("Yang ada di folder ini: " + mirip.join(", "));
+    console.error("Ganti nama file yang benar menjadi persis `wadahqris.html`.");
+  } else {
+    console.error("Jalankan `firebase deploy` dari folder yang berisi firebase.json.");
+  }
   process.exit(1);
 }
 
