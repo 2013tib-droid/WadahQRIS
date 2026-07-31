@@ -2,7 +2,7 @@
   "hosting": {
     "public": "public",
     "predeploy": [
-      "mkdir -p public && cp wadahqris.html public/index.html"
+      "node -e \"const f=require('fs');f.mkdirSync('public',{recursive:true});f.copyFileSync('wadahqris.html','public/index.html')\""
     ],
     "ignore": [
       "firebase.json",
