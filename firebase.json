@@ -2,7 +2,7 @@
   "hosting": {
     "public": "public",
     "predeploy": [
-      "mkdir -p public && cp wadahqris.html public/index.html"
+      "node scripts/siapkan-public.js"
     ],
     "ignore": [
       "firebase.json",
