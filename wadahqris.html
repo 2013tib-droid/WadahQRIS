@@ -648,6 +648,10 @@ const WILAYAH = {
   "Indramayu":["Indramayu","Sindang","Pasekan","Balongan","Cantigi","Arahan","Lohbener","Losarang","Kandanghaur","Bongas","Gabuswetan","Anjatan","Sukra","Patrol","Haurgeulis","Gantar","Cikedung","Terisi","Lelea","Widasari","Bangodua","Tukdana","Kertasemaya","Sukagumiwang","Sliyeg","Jatibarang","Kedokan Bunder","Karangampel","Juntinyuat","Krangkeng","Kroya"],
   "Lainnya":[]
 };
+/* Kecamatan selalu urut A→Z, jadi daftar di atas boleh ditulis/ditambah
+   dengan urutan apa pun (mis. mengelompok per wilayah) tanpa merusak dropdown. */
+Object.values(WILAYAH).forEach(d=>d.sort((a,b)=>a.localeCompare(b,"id")));
+
 const LAIN = "Lainnya";
 /* Nilai kota khusus untuk QRIS yang tempatnya tidak diketahui.
    Disimpan sebagai teks kota biasa → lolos validasi rules (2–40 huruf)
