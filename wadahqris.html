@@ -720,15 +720,28 @@ function tabs(){
 }
 
 /* ── Render ── */
+/* ── Urutan acak per kunjungan ──
+   Daftar publik diacak supaya QRIS yang dititipkan lebih awal tidak selamanya
+   tertimbun di bawah — tiap entri dapat giliran tampil di atas. Nomor acak
+   diberikan SEKALI per id dan disimpan di `rnd` (Map), jadi urutan tetap sama
+   selama tab dibuka: ganti filter, "Tampilkan X lainnya", atau snapshot baru
+   dari Firestore tidak mengocok ulang daftar di depan mata pengguna. Refresh
+   halaman = Map kosong lagi = urutan baru. Tanpa query/biaya Firestore
+   tambahan; hanya satu Math.random() + satu sort per render. */
+const rnd = new Map();
+const rank = id => { if(!rnd.has(id)) rnd.set(id, Math.random()); return rnd.get(id) };
+
 function visible(){
   let L;
   if(fCat==="pending"){
+    /* Antrean admin TIDAK diacak — moderasi lebih enak berurutan waktu. */
     L = items.filter(i=>i.status==="pending");
   }else{
     L = items.filter(i=>i.status==="approved");
     if(fCat!=="semua") L=L.filter(i=>i.category===fCat);
     if(fCity) L=L.filter(i=>i.city===fCity);
     if(fDist) L=L.filter(i=>i.district===fDist);
+    L.sort((a,b)=>rank(a.id)-rank(b.id));
   }
   if(fQuery){
     const q=fQuery.toLowerCase();
