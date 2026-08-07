@@ -265,7 +265,8 @@ input:focus,textarea:focus,select:focus{outline:none;background-color:var(--card
 .ap-bars{display:flex;align-items:flex-end;gap:6px;height:64px;margin-top:18px;border-bottom:1px solid rgba(255,255,255,.12)}
 .ap-bcol{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;position:relative}
 .ap-bar{width:100%;max-width:26px;background:#2FA866;border-radius:4px 4px 0 0;min-height:2px}
-.ap-bcol .bl{position:absolute;left:50%;transform:translateX(-50%);font-size:10.5px;font-weight:700;font-variant-numeric:tabular-nums}
+.ap-bcol .bl{position:absolute;left:50%;transform:translateX(-50%);font-size:10.5px;font-weight:700;font-variant-numeric:tabular-nums;color:#9C9A8E}
+.ap-bcol.is-today .bl{color:#F3F1E9}
 .ap-days{display:flex;gap:6px;margin-top:5px}
 .ap-days span{flex:1;text-align:center;font-size:10px;color:#9C9A8E}
 .ap-vis-row{display:flex;gap:1px;background:rgba(255,255,255,.12);border-radius:8px;overflow:hidden;margin-top:12px}
@@ -648,6 +649,10 @@ const WILAYAH = {
   "Indramayu":["Indramayu","Sindang","Pasekan","Balongan","Cantigi","Arahan","Lohbener","Losarang","Kandanghaur","Bongas","Gabuswetan","Anjatan","Sukra","Patrol","Haurgeulis","Gantar","Cikedung","Terisi","Lelea","Widasari","Bangodua","Tukdana","Kertasemaya","Sukagumiwang","Sliyeg","Jatibarang","Kedokan Bunder","Karangampel","Juntinyuat","Krangkeng","Kroya"],
   "Lainnya":[]
 };
+/* Kecamatan selalu urut A→Z, jadi daftar di atas boleh ditulis/ditambah
+   dengan urutan apa pun (mis. mengelompok per wilayah) tanpa merusak dropdown. */
+Object.values(WILAYAH).forEach(d=>d.sort((a,b)=>a.localeCompare(b,"id")));
+
 const LAIN = "Lainnya";
 /* Nilai kota khusus untuk QRIS yang tempatnya tidak diketahui.
    Disimpan sebagai teks kota biasa → lolos validasi rules (2–40 huruf)
@@ -754,7 +759,7 @@ function visBlock(){
       <div class="ap-vis-today"><span class="v">${fmt(days[6].n)}</span><span class="k">perangkat hari ini</span></div>
       <div class="ap-bars">${days.map((d,x)=>{
         const h=Math.round(d.n/max*100);
-        return `<div class="ap-bcol" title="${d.k} · ${fmt(d.n)}">${x===6?`<span class="bl" style="bottom:calc(${h}% + 3px)">${fmt(d.n)}</span>`:""}<div class="ap-bar" style="height:${h}%"></div></div>`;
+        return `<div class="ap-bcol${x===6?" is-today":""}" title="${d.k} · ${fmt(d.n)}"><span class="bl" style="bottom:calc(${h}% + 3px)">${fmt(d.n)}</span><div class="ap-bar" style="height:${h}%"></div></div>`;
       }).join("")}</div>
       <div class="ap-days">${days.map(d=>`<span>${d.w}</span>`).join("")}</div>
       <div class="ap-vis-row">
