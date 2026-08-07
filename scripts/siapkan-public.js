@@ -33,6 +33,37 @@ if (!fs.existsSync(sumber)) {
   process.exit(1);
 }
 
+/* Pemeriksaan kewarasan sebelum menyalin.
+ *
+ * Pernah terjadi: `wadahqris.html` ditimpa oleh isi balasan error dari
+ * raw.githubusercontent.com (repo privat → badan respons "404: Not Found"
+ * sepanjang belasan byte). Deploy tetap berjalan mulus dan situs produksi
+ * berubah jadi tulisan "404: Not Found" — kegagalannya baru ketahuan dari
+ * situs yang sudah live. Karena file aplikasi ini SELALU berukuran ratusan
+ * KB dan selalu berupa halaman utuh, dua ciri itu cukup untuk menolak file
+ * yang jelas bukan aplikasi, sebelum apa pun terunggah.
+ */
+const isi = fs.readFileSync(sumber, "utf8");
+const MIN_KB = 50;
+const masalah =
+  isi.length < MIN_KB * 1024
+    ? `ukurannya cuma ${Math.round(isi.length / 1024)} KB (aplikasi ini selalu >${MIN_KB} KB)`
+    : !/<!DOCTYPE html>/i.test(isi)
+    ? "tidak diawali <!DOCTYPE html>"
+    : !isi.includes('id="list"')
+    ? 'tidak berisi elemen daftar QRIS (id="list")'
+    : null;
+
+if (masalah) {
+  console.error("Deploy DIBATALKAN: wadahqris.html " + masalah + ".");
+  console.error("Isinya sekarang: " + JSON.stringify(isi.slice(0, 120)));
+  console.error("");
+  console.error("File aplikasi kemungkinan tertimpa. Pulihkan dari git:");
+  console.error("  git fetch origin main");
+  console.error("  git checkout origin/main -- wadahqris.html");
+  process.exit(1);
+}
+
 fs.mkdirSync(path.dirname(tujuan), { recursive: true });
 fs.copyFileSync(sumber, tujuan);
 
