@@ -286,12 +286,6 @@ input:focus,textarea:focus,select:focus{outline:none;background-color:var(--card
 .st-chip .k{font-size:10.5px;font-weight:600;margin-top:2px;white-space:nowrap}
 .st-sec{margin-top:24px}
 .st-t{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
-.st-bars{display:flex;align-items:flex-end;gap:8px;height:80px;margin-top:18px;border-bottom:1px solid var(--line)}
-.st-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;position:relative}
-.st-bar{width:100%;max-width:30px;background:#1E8552;border-radius:4px 4px 0 0;min-height:2px}
-.st-col .bl{position:absolute;left:50%;transform:translateX(-50%);font-size:10.5px;font-weight:700;font-variant-numeric:tabular-nums}
-.st-days{display:flex;gap:8px;margin-top:5px}
-.st-days span{flex:1;text-align:center;font-size:10px;color:var(--muted)}
 .st-row{display:grid;grid-template-columns:118px 1fr 26px;align-items:center;gap:9px;margin-top:8px}
 .st-row .l{font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .st-row .track{height:12px;background:var(--line-soft);border-radius:6px;overflow:hidden}
@@ -678,7 +672,6 @@ const PAGE=30; let shown=PAGE, lastKey="";
 /* Counter pengunjung: peta { "YYYY-MM-DD": jumlah } dari koleksi `visits` (hanya admin yang membacanya) */
 let visits={};
 const HARI=["Min","Sen","Sel","Rab","Kam","Jum","Sab"];
-const BULAN=["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
 const dayKey = d => d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
 const $ = id => document.getElementById(id);
 const esc = s => String(s??"").replace(/[<>&"]/g,c=>({"<":"&lt;",">":"&gt;","&":"&amp;",'"':"&quot;"}[c]));
@@ -876,22 +869,6 @@ window.openStats = () => {
   const kota=new Set(ap.filter(isKota).map(i=>i.city)).size;
   const cats=Object.keys(CATS).map(k=>({...CATS[k], n:ap.filter(i=>i.category===k).length}));
 
-  /* QRIS baru per bulan (maks 6 bulan terakhir; bulan kosong di awal dipotong
-     supaya grafik mulai dari bulan pertama yang benar-benar ada isinya) */
-  const now=new Date();
-  let bulan=[...Array(6)].map((_,x)=>{
-    const d=new Date(now.getFullYear(), now.getMonth()-5+x, 1);
-    return {y:d.getFullYear(), m:d.getMonth(), l:BULAN[d.getMonth()], n:0};
-  });
-  ap.forEach(i=>{
-    const d=i.uploadedAt?.toDate ? i.uploadedAt.toDate() : new Date(i.uploadedAt||0);
-    const b=bulan.find(x=>x.y===d.getFullYear() && x.m===d.getMonth()); if(b) b.n++;
-  });
-  const mulai=bulan.findIndex(b=>b.n>0);
-  if(mulai>0) bulan=bulan.slice(mulai);
-  else if(mulai<0) bulan=bulan.slice(-1);
-  const bMax=Math.max(...bulan.map(b=>b.n),1);
-
   /* Kota dengan QRIS terbanyak (top 5 + sisanya diringkas agar totalnya utuh) */
   const per={}; ap.forEach(i=>{ if(isKota(i)) per[i.city]=(per[i.city]||0)+1 });
   const urut=Object.entries(per).sort((a,b)=>b[1]-a[1]);
@@ -907,14 +884,6 @@ window.openStats = () => {
   $("sBody").innerHTML = `
     <div class="st-hero"><span class="v">${ap.length}</span><span class="k">QRIS terverifikasi · ${kota} kota</span></div>
     <div class="st-chips">${cats.map(c=>`<div class="st-chip"><div class="v">${c.n}</div><div class="k" style="color:${c.c}">${c.t}</div></div>`).join("")}</div>
-    <div class="st-sec">
-      <div class="st-t">QRIS baru per bulan</div>
-      <div class="st-bars">${bulan.map(b=>{
-        const h=Math.round(b.n/bMax*100);
-        return `<div class="st-col" title="${b.l} · ${b.n}">${(b.n===bMax && b.n>0)?`<span class="bl" style="bottom:calc(${h}% + 3px)">${b.n}</span>`:""}<div class="st-bar" style="height:${h}%"></div></div>`;
-      }).join("")}</div>
-      <div class="st-days">${bulan.map(b=>`<span>${b.l}</span>`).join("")}</div>
-    </div>
     ${(top.length||sisaTeks) ? `<div class="st-sec">
       <div class="st-t">Kota dengan QRIS terbanyak</div>
       ${top.map(([c,n])=>`<div class="st-row"><span class="l">${esc(c)}</span><div class="track"><div class="fill" style="width:${Math.round(n/tMax*100)}%"></div></div><span class="n">${n}</span></div>`).join("")}
