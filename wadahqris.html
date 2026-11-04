@@ -224,7 +224,11 @@ input:focus,textarea:focus,select:focus{outline:none;background-color:var(--card
 .support img{width:100%;border-radius:var(--r);border:1px solid var(--line);display:block}
 .support h3 small{font-weight:500;opacity:.8}
 .gal{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding-bottom:4px}
-.gal img{flex:0 0 86%;width:86%;scroll-snap-align:start;max-height:340px;object-fit:cover;background:#F0EEE7}
+.gal{position:relative;touch-action:pan-x pan-y;overscroll-behavior-x:contain}
+.gal img{flex:0 0 86%;width:86%;min-height:180px;scroll-snap-align:start;scroll-snap-stop:always;max-height:340px;object-fit:cover;background:#F0EEE7}
+.gal-dots{display:flex;justify-content:center;gap:6px;margin-top:8px}
+.gal-dots i{width:6px;height:6px;border-radius:50%;background:var(--line);transition:background .2s,width .2s}
+.gal-dots i.on{background:var(--muted);width:16px;border-radius:3px}
 .thumbs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
 .thumbs:empty{display:none}
 .thumb{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;border:1px solid var(--line);background:#F0EEE7}
@@ -922,13 +926,21 @@ async function loadMedia(i){
   const extra = more ? more.docs.sort((a,b)=>a.id.localeCompare(b.id)).map(d=>d.data().url).filter(Boolean) : [];
   i.photos = [i.photoUrl, ...extra].filter(Boolean);
 }
+/* Titik penanda foto aktif di galeri foto pendukung. */
+window.galDots = g => {
+  const imgs=g.children; let k=0, best=1e9;
+  for(let n=0;n<imgs.length;n++){ const d=Math.abs(imgs[n].offsetLeft-g.scrollLeft); if(d<best){best=d;k=n} }
+  [...g.nextElementSibling.children].forEach((el,n)=>el.classList.toggle("on",n===k));
+};
 /* Semua foto pendukung sebuah entri (entri lama/demo hanya punya photoUrl). */
 function photosOf(i){ return i.photos || (i.photoUrl ? [i.photoUrl] : []) }
 function supportBlock(i){
   const ps=photosOf(i); if(!ps.length) return "";
   const alt=`Foto ${esc(i.name||"")}`;
   if(ps.length===1) return `<div class="support"><h3>Foto pendukung</h3><img src="${ps[0]}" alt="${alt}"></div>`;
-  return `<div class="support"><h3>Foto pendukung <small>· ${ps.length} foto, geser →</small></h3><div class="gal">${ps.map((u,k)=>`<img src="${u}" alt="${alt} ${k+1}" loading="lazy">`).join("")}</div></div>`;
+  /* Tanpa loading="lazy": gambar sudah base64 di memori, dan Safari iOS kerap
+     tidak memuat gambar lazy yang berada di luar layar secara HORIZONTAL. */
+  return `<div class="support"><h3>Foto pendukung <small>· ${ps.length} foto, geser →</small></h3><div class="gal" onscroll="galDots(this)">${ps.map((u,k)=>`<img src="${u}" alt="${alt} ${k+1}">`).join("")}</div><div class="gal-dots">${ps.map((_,k)=>`<i class="${k?"":"on"}"></i>`).join("")}</div></div>`;
 }
 function contactBlock(i){
   // href dirangkai dari data tervalidasi (nomor = digit, ig = username), jadi aman.
