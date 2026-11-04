@@ -171,6 +171,7 @@ input:focus,textarea:focus,select:focus{outline:none;background-color:var(--card
 
 /* Drop */
 .drop{border:2px dashed var(--line);border-radius:var(--r);background:var(--card);padding:30px 20px;text-align:center;width:100%;display:flex;flex-direction:column;align-items:center;gap:8px}
+.drop[hidden]{display:none}
 .drop.hot{border-color:var(--scan);background:var(--scan-soft)}
 .drop .ic{font-size:32px}
 .drop b{font-size:15px}
@@ -217,6 +218,14 @@ input:focus,textarea:focus,select:focus{outline:none;background-color:var(--card
 .support{margin-top:18px}
 .support h3{font-size:13px;color:var(--muted);font-weight:600;margin-bottom:8px;font-family:'Public Sans',sans-serif}
 .support img{width:100%;border-radius:var(--r);border:1px solid var(--line);display:block}
+.support h3 small{font-weight:500;opacity:.8}
+.gal{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding-bottom:4px}
+.gal img{flex:0 0 86%;width:86%;scroll-snap-align:start;max-height:340px;object-fit:cover;background:#F0EEE7}
+.thumbs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.thumbs:empty{display:none}
+.thumb{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;border:1px solid var(--line);background:#F0EEE7}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb button{position:absolute;top:5px;right:5px;width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:13px;display:flex;align-items:center;justify-content:center}
 .contacts{margin-top:18px}
 .contacts h3{font-size:13px;color:var(--muted);font-weight:600;margin-bottom:8px;font-family:'Public Sans',sans-serif}
 .contact-row{display:flex;gap:8px;flex-wrap:wrap}
@@ -426,13 +435,10 @@ input:focus,textarea:focus,select:focus{outline:none;background-color:var(--card
     <div class="pane" id="p4">
       <div class="step-label">Langkah 4 dari 4</div>
       <div class="step-title">Foto pendukung</div>
-      <p class="step-help">Foto masjid, warung, atau papan namanya. Boleh dilewati — tapi ini membantu orang yakin QRIS-nya benar.</p>
-      <button class="drop sm" id="drop2"><span class="ic">🖼️</span><b>Tambah foto pendukung</b><span>Opsional</span></button>
-      <input type="file" id="file2" accept="image/*" hidden>
-      <div id="prevBox2" hidden>
-        <div class="preview sm"><img id="prevImg2" alt="Pratinjau foto pendukung"></div>
-        <button class="retake" id="remove2">Hapus foto ini</button>
-      </div>
+      <p class="step-help">Foto masjid, warung, papan nama, atau suasana tempatnya — boleh sampai 5 foto. Boleh dilewati, tapi makin banyak bukti, makin yakin orang bahwa QRIS-nya benar.</p>
+      <div class="thumbs" id="thumbs"></div>
+      <button class="drop sm" id="drop2"><span class="ic">🖼️</span><b id="drop2Lbl">Tambah foto pendukung</b><span id="drop2Sub">Opsional · maks. 5 foto</span></button>
+      <input type="file" id="file2" accept="image/*" multiple hidden>
       <div class="note"><span>⏳</span><div><b>Ditinjau dulu sebelum tayang</b>QRIS yang kamu titipkan dicek admin dulu. Menjaga wadah ini bersih adalah tanggung jawab bersama.</div></div>
     </div>
   </div>
@@ -898,10 +904,27 @@ let openDetailId=null;
 async function loadMedia(i){
   if(i.dataUrl!==undefined) return;            // demo / sudah pernah dimuat
   if(!LIVE){ i.dataUrl=""; i.photoUrl=""; return }
-  const snap = await db.collection("qris_media").doc(i.id).get();
+  const mref = db.collection("qris_media").doc(i.id);
+  /* Foto pendukung ke-2..5 ada di subkoleksi photos/{2..5}. Diambil paralel;
+     kalau gagal (mis. rules belum dipublish) cukup foto pertama yang tampil —
+     jangan sampai gambar QRIS ikut gagal. */
+  const [snap, more] = await Promise.all([
+    mref.get(),
+    mref.collection("photos").get().catch(e=>{ console.warn("foto tambahan gagal:", e); return null })
+  ]);
   const m = snap.exists ? snap.data() : {};
   i.dataUrl = m.dataUrl || "";
   i.photoUrl = m.photoUrl || "";
+  const extra = more ? more.docs.sort((a,b)=>a.id.localeCompare(b.id)).map(d=>d.data().url).filter(Boolean) : [];
+  i.photos = [i.photoUrl, ...extra].filter(Boolean);
+}
+/* Semua foto pendukung sebuah entri (entri lama/demo hanya punya photoUrl). */
+function photosOf(i){ return i.photos || (i.photoUrl ? [i.photoUrl] : []) }
+function supportBlock(i){
+  const ps=photosOf(i); if(!ps.length) return "";
+  const alt=`Foto ${esc(i.name||"")}`;
+  if(ps.length===1) return `<div class="support"><h3>Foto pendukung</h3><img src="${ps[0]}" alt="${alt}"></div>`;
+  return `<div class="support"><h3>Foto pendukung <small>· ${ps.length} foto, geser →</small></h3><div class="gal">${ps.map((u,k)=>`<img src="${u}" alt="${alt} ${k+1}" loading="lazy">`).join("")}</div></div>`;
 }
 function contactBlock(i){
   // href dirangkai dari data tervalidasi (nomor = digit, ig = username), jadi aman.
@@ -937,7 +960,7 @@ function detailBody(i){
     </dl>
     ${contactBlock(i)}
     ${isAdmin?`<button class="btn ghost" style="margin-top:16px" onclick="editEntry('${i.id}')">✏️ Perbaiki data</button>`:""}
-    ${i.photoUrl?`<div class="support"><h3>Foto pendukung</h3><img src="${i.photoUrl}" alt="Foto ${esc(i.name||"")}"></div>`:""}`;
+    ${supportBlock(i)}`;
 }
 window.detail = id => {
   const i=items.find(x=>x.id===id); if(!i) return;
@@ -1012,14 +1035,15 @@ window.bagikan = async id => {
 };
 
 /* ── Upload ── */
-let step=1, img=null, img2=null, cat=null;
+const MAX_PHOTOS=5;
+let step=1, img=null, photos=[], cat=null;
 window.startUpload = () => {
-  step=1; img=null; img2=null; cat=null;
+  step=1; img=null; photos=[]; cat=null;
   $("fName").value=""; $("uAddr").value=""; $("uCityOther").value="";
   $("uWa").value=""; $("uIg").value="";
   $("file").value=""; $("file2").value="";
   $("prevBox").hidden=true; $("drop").hidden=false;
-  $("prevBox2").hidden=true; $("drop2").hidden=false;
+  paintPhotos();
   $("cityOtherBox").hidden=true; $("distBox").hidden=true;
   document.querySelectorAll(".cat").forEach(c=>c.setAttribute("aria-pressed","false"));
   fillUpCity(); paint(); show("upSheet");
@@ -1069,8 +1093,8 @@ document.querySelectorAll(".cat").forEach(b=>b.onclick=()=>{
 });
 
 /* Gambar */
-function compress(f, max, q, cap, cb){
-  if(!f.type.startsWith("image/")) return toast("File itu bukan gambar","err");
+function compress(f, max, q, cap, cb, fail=()=>{}){
+  if(!f.type.startsWith("image/")){ toast("File itu bukan gambar","err"); return fail() }
   const r=new FileReader();
   r.onload=ev=>{
     const im=new Image();
@@ -1087,7 +1111,7 @@ function compress(f, max, q, cap, cb){
       while(d.length>cap && q>.5){ q-=.06; d=cv.toDataURL("image/jpeg",q) }
       cb(d);
     };
-    im.onerror=()=>toast("Gambar tidak bisa dibaca","err");
+    im.onerror=()=>{ toast("Gambar tidak bisa dibaca","err"); fail() };
     im.src=ev.target.result;
   };
   r.readAsDataURL(f);
@@ -1100,8 +1124,24 @@ $("file").onchange=e=>{ const f=e.target.files[0]; if(f) compress(f,1000,.85,560
   if(ev==="drop"&&e.dataTransfer.files[0]) compress(e.dataTransfer.files[0],1000,.85,560000,d=>{ img=d; $("prevImg").src=d; $("prevBox").hidden=false; $("drop").hidden=true; paint() });
 }));
 $("drop2").onclick=()=>$("file2").click();
-$("file2").onchange=e=>{ const f=e.target.files[0]; if(f) compress(f,900,.8,380000,d=>{ img2=d; $("prevImg2").src=d; $("prevBox2").hidden=false; $("drop2").hidden=true }) };
-$("remove2").onclick=()=>{ img2=null; $("file2").value=""; $("prevBox2").hidden=true; $("drop2").hidden=false };
+/* Foto pendukung: boleh beberapa sekaligus, total maks. MAX_PHOTOS. */
+function paintPhotos(){
+  $("thumbs").innerHTML = photos.map((d,k)=>`<div class="thumb"><img src="${d}" alt="Foto pendukung ${k+1}"><button type="button" aria-label="Hapus foto ${k+1}" onclick="rmPhoto(${k})">✕</button></div>`).join("");
+  const n=photos.length;
+  $("drop2").hidden = n>=MAX_PHOTOS;
+  $("drop2Lbl").textContent = n ? "Tambah foto lagi" : "Tambah foto pendukung";
+  $("drop2Sub").textContent = n ? `${n} dari ${MAX_PHOTOS} foto` : `Opsional · maks. ${MAX_PHOTOS} foto`;
+}
+window.rmPhoto = k => { photos.splice(k,1); paintPhotos() };
+$("file2").onchange=e=>{
+  const fs=[...e.target.files]; e.target.value="";
+  const room=MAX_PHOTOS-photos.length;
+  if(fs.length>room) toast(`Maksimal ${MAX_PHOTOS} foto — ${fs.length-room} foto tidak ditambahkan`,"err");
+  // Diproses berurutan supaya urutan foto = urutan yang dipilih.
+  fs.slice(0,room).reduce((p,f)=>p.then(()=>new Promise(ok=>{
+    compress(f,900,.8,380000,d=>{ if(photos.length<MAX_PHOTOS){ photos.push(d); paintPhotos() } ok() }, ok);
+  })), Promise.resolve());
+};
 
 async function submit(){
   const wa=normWA($("uWa").value), ig=normIG($("uIg").value);
@@ -1120,7 +1160,8 @@ async function submit(){
     status:"pending",
     uploadedAt: LIVE ? firebase.firestore.FieldValue.serverTimestamp() : Date.now()
   };
-  const media={ dataUrl:img, photoUrl:img2||"" };
+  // Foto pertama tetap di photoUrl (kompatibel dgn entri lama); sisanya di subkoleksi.
+  const media={ dataUrl:img, photoUrl:photos[0]||"" };
   try{
     if(LIVE){
       /* Teks di koleksi 'qris' (ringan, dimuat di list) + gambar di 'qris_media'
@@ -1129,10 +1170,12 @@ async function submit(){
       const ref=db.collection("qris").doc();
       const batch=db.batch();
       batch.set(ref, meta);
-      batch.set(db.collection("qris_media").doc(ref.id), media);
+      const mref=db.collection("qris_media").doc(ref.id);
+      batch.set(mref, media);
+      photos.slice(1).forEach((u,k)=>batch.set(mref.collection("photos").doc(String(k+2)), {url:u}));
       await batch.commit();
     }
-    else { items.unshift({...meta,...media,id:"local-"+Date.now()}); fillFilters(); tabs(); render() }
+    else { items.unshift({...meta,...media,photos:[...photos],id:"local-"+Date.now()}); fillFilters(); tabs(); render() }
     hide(); toast("Terima kasih. Menunggu ditinjau admin.","ok");
   }catch(err){
     console.error(err);
@@ -1246,7 +1289,10 @@ window.del = async (id,rej) => {
     /* Hapus dokumen teks + gambarnya di qris_media sekaligus. */
     const batch=db.batch();
     batch.delete(db.collection("qris").doc(id));
-    batch.delete(db.collection("qris_media").doc(id));
+    const mref=db.collection("qris_media").doc(id);
+    batch.delete(mref);
+    // Foto pendukung ke-2..5 (subkoleksi tidak ikut terhapus otomatis).
+    for(let n=2;n<=MAX_PHOTOS;n++) batch.delete(mref.collection("photos").doc(String(n)));
     await batch.commit();
     /* Perbarui lokal langsung — karena listen() sengaja mengabaikan snapshot
        kosong (anti-flash), menghapus entri TERAKHIR tak akan ter-refleksi dari

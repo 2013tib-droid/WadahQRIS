@@ -196,6 +196,32 @@ service cloud.firestore {
 
       // Hapus/tolak: hanya admin.
       allow delete: if isAdmin();
+
+      // ── FOTO PENDUKUNG TAMBAHAN (ke-2 s/d ke-5) ──────────────
+      // Foto pertama tetap di field photoUrl di atas. Sisanya satu dokumen
+      // per foto (photos/2 … photos/5) karena 5 foto tak muat di satu
+      // dokumen (batas 1MB Firestore).
+      match /photos/{n} {
+
+        // Sama dengan gambar induknya: hanya bila entri sudah approved.
+        allow read: if isAdmin()
+          || (exists(/databases/$(database)/documents/qris/$(docId))
+              && get(/databases/$(database)/documents/qris/$(docId)).data.status == 'approved');
+
+        // Hanya boleh ditulis SEBATCH dengan pembuatan entri baru:
+        // dokumen qris induk belum ada sebelum batch, dan ada setelahnya.
+        // Jadi orang tak bisa menempelkan foto ke entri yang sudah tayang.
+        allow create: if n in ['2','3','4','5']
+          && !exists(/databases/$(database)/documents/qris/$(docId))
+          && existsAfter(/databases/$(database)/documents/qris/$(docId))
+          && request.resource.data.keys().hasOnly(['url'])
+          && request.resource.data.url is string
+          && request.resource.data.url.size() < 400000
+          && request.resource.data.url.matches('^data:image/jpeg;base64,.*');
+
+        allow update: if false;
+        allow delete: if isAdmin();
+      }
     }
 
     // Semua koleksi lain: tertutup rapat.
