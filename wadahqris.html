@@ -7,7 +7,10 @@
 <title>WadahQRIS — Berbagi wadah, berbagi kebaikan</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Font dimuat TANPA menahan tampilan: di sinyal lemah halaman langsung tampil
+     dengan font sistem, lalu berganti saat font tiba. -->
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
 <style>
 :root{
   --ink:#1C1B17; --paper:#F8F6F0; --card:#FFFFFF; --line:#E2DFD4; --line-soft:#EFECE3;
@@ -106,6 +109,7 @@ main{padding:16px;max-width:1000px;margin-inline:auto}
 .mini.reject,.mini.del{background:#fff;color:var(--danger);border:1px solid #F0D5D1}
 .mini.edit{background:#fff;color:var(--sub);border:1px solid var(--line)}
 
+.more.retry{padding:0 20px;grid-column:auto}
 .more{grid-column:1/-1;min-height:48px;border-radius:999px;border:1px solid var(--line);background:var(--card);font-weight:600;font-size:13.5px;color:var(--sub);margin-top:2px}
 .more:active{background:#FAF9F5}
 
@@ -355,7 +359,7 @@ input:focus,textarea:focus,select:focus{outline:none;background-color:var(--card
 <main>
   <div id="adminPanel"></div>
   <p class="count" id="count"></p>
-  <div class="list" id="list"></div>
+  <div class="list" id="list"><div class="skel"></div><div class="skel"></div><div class="skel"></div></div>
   <div id="empty"></div>
   <footer class="site-foot">
     <button class="wa-btn" id="statBtn">📊 Statistik Wadah</button>
@@ -543,7 +547,6 @@ input:focus,textarea:focus,select:focus{outline:none;background-color:var(--card
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics-compat.js"></script>
 <script>
 /* ════════ ISI CONFIG FIREBASE DI SINI ════════ */
 const firebaseConfig = {
@@ -610,7 +613,14 @@ try{
     /* Statistik pengunjung (Google Analytics) — hanya kunjungan asli,
        bukan pratinjau iframe (wadahqris-mobile.html). Data dilihat di
        Firebase Console → Analytics. */
-    if(window.self===window.top) firebase.analytics();
+    /* SDK Analytics dimuat BELAKANGAN (setelah halaman selesai dimuat) supaya
+       tidak berebut sinyal dengan daftar QRIS di koneksi lemah. */
+    if(window.self===window.top) addEventListener("load",()=>setTimeout(()=>{
+      const s=document.createElement("script");
+      s.src="https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics-compat.js";
+      s.onload=()=>{ try{ firebase.analytics() }catch(e){} };
+      document.head.appendChild(s);
+    },3000));
   }
 }catch(e){ console.warn("Firebase belum siap:",e) }
 
@@ -834,6 +844,10 @@ function render(){
   const L=visible(), el=$("list"), e=$("empty"), c=$("count");
   if(!L.length){
     el.innerHTML=""; c.textContent="";
+    /* Belum ada data sama sekali & server BELUM memastikan wadah kosong →
+       hampir pasti sinyal yang lemah, bukan wadah yang kosong. Jangan bohong
+       "masih kosong"; listener tetap mencoba & daftar muncul sendiri. */
+    if(LIVE && !items.length && !serverEmpty){ e.innerHTML=SINYAL_LEMAH; return }
     e.innerHTML = fQuery
       ? `<div class="empty"><div class="big">🔍</div><h3>Tidak ada hasil</h3><p>Tidak ada QRIS yang cocok dengan "${esc(fQuery)}". Coba kata kunci lain.</p></div>`
       : fCat==="pending"
@@ -920,7 +934,11 @@ async function loadMedia(i){
     mref.get(),
     mref.collection("photos").get().catch(e=>{ console.warn("foto tambahan gagal:", e); return null })
   ]);
-  const m = snap.exists ? snap.data() : {};
+  /* Entri lama menyimpan gambar inline di dokumen `qris`. Biasanya sudah ikut
+     terbawa list, tapi kalau item berasal dari cache lokal (gambar sengaja
+     tidak disimpan), ambil dari dokumen `qris`-nya. */
+  let m = snap.exists ? snap.data() : null;
+  if(!m){ const q=await db.collection("qris").doc(i.id).get(); m = q.exists ? q.data() : {} }
   i.dataUrl = m.dataUrl || "";
   i.photoUrl = m.photoUrl || "";
   const extra = more ? more.docs.sort((a,b)=>a.id.localeCompare(b.id)).map(d=>d.data().url).filter(Boolean) : [];
@@ -953,7 +971,9 @@ function detailBody(i){
   const c=CATS[i.category]||CATS.lainnya;
   const d=i.uploadedAt?.toDate ? i.uploadedAt.toDate() : new Date(i.uploadedAt||Date.now());
   const loading = i.dataUrl===undefined;      // gambar belum tiba
-  const frame = loading
+  const frame = i.mediaErr
+    ? `<div class="qris-frame loading"><button class="more retry" onclick="detail('${i.id}')">📶 Gambar belum termuat · Coba lagi</button></div>`
+    : loading
     ? `<div class="qris-frame loading"><span class="spin"></span></div>`
     : `<div class="qris-frame"><img src="${i.dataUrl}" alt="Kode QRIS ${esc(i.name||"")}"></div>`;
   const acts = loading ? "" : `
@@ -985,8 +1005,11 @@ window.detail = id => {
   $("dBody").innerHTML = detailBody(i);        // teks & meta langsung tampil; gambar menyusul
   show("dSheet");
   if(i.dataUrl===undefined){
+    i.mediaErr=false; $("dBody").innerHTML = detailBody(i);
     loadMedia(i)
-      .catch(err=>{ console.error(err); i.dataUrl=""; i.photoUrl=""; toast("Gambar gagal dimuat","err") })
+      /* Gagal (biasanya sinyal) → JANGAN kunci jadi kosong; tampilkan tombol
+         "Coba lagi" supaya bisa diulang tanpa memuat ulang halaman. */
+      .catch(err=>{ console.error(err); i.mediaErr=true; toast("Gambar gagal dimuat — cek sinyal","err") })
       .then(()=>{ if(openDetailId===id) $("dBody").innerHTML = detailBody(i) });
   }
 };
@@ -1266,13 +1289,20 @@ window.signOut = async function(){
 /* Sumber kebenaran satu-satunya: status auth dari Firebase */
 if(LIVE){
   auth.onAuthStateChanged(u=>{
+    const was=isAdmin;
     isAdmin = !!u;
     adminEmail = u?.email || "";
     $("adminBtn").className = "admin-link" + (isAdmin?" on":"");
     $("adminBtn").textContent = isAdmin ? "🔓 Keluar mode pengurus" : "Masuk sebagai pengurus";
     if(!isAdmin && fCat==="pending") fCat="semua";
-    listen();       // ganti query: publik vs admin
-    listenVisits(); // counter pengunjung hanya dibaca saat admin
+    /* Ganti query HANYA bila status admin berubah. Dulu listen() selalu
+       dipanggil ulang di sini → pengunjung biasa berlangganan DUA KALI tiap
+       buka web, dan permintaan pertama yang sedang jalan dibatalkan — di
+       sinyal lemah itu berarti mulai dari nol lagi. */
+    if(was!==isAdmin){
+      listen();       // ganti query: publik vs admin
+      listenVisits(); // counter pengunjung hanya dibaca saat admin
+    }
     tabs(); render();
     if(isAdmin){
       const p=items.filter(i=>i.status==="pending").length;
@@ -1404,20 +1434,47 @@ $("eSave").onclick = async () => {
 $("list").innerHTML=`<div class="skel"></div><div class="skel"></div><div class="skel"></div>`;
 tabs(); fillFilters();
 
-let unsub=null, loaded=false;
+let unsub=null, loaded=false, serverEmpty=false, sudahCatat=false;
+
+/* ── Cache lokal daftar QRIS (anti sinyal lemah) ──
+   Tiap kali daftar berhasil diambil dari server, salinan TEKS-nya (tanpa
+   gambar — cuma beberapa ratus byte per entri) disimpan di localStorage.
+   Kunjungan berikutnya langsung menampilkan salinan ini dalam sekejap,
+   bahkan saat sinyal lemah/offline; data terbaru menimpanya diam-diam begitu
+   tiba. Hanya daftar publik (approved) yang disimpan, bukan antrean admin. */
+const CACHE_KEY="wq-list-v1";
+function simpanCache(){
+  if(isAdmin) return;
+  const d=items.filter(i=>i.status==="approved").map(({dataUrl,photoUrl,photos,mediaErr,...r})=>({
+    ...r, uploadedAt: r.uploadedAt?.toMillis ? r.uploadedAt.toMillis() : (r.uploadedAt||0)
+  }));
+  try{ localStorage.setItem(CACHE_KEY, JSON.stringify({t:Date.now(), d})) }catch(e){}
+}
+function muatCache(){
+  try{ const c=JSON.parse(localStorage.getItem(CACHE_KEY)||"null"); return Array.isArray(c?.d) ? c.d : [] }
+  catch(e){ return [] }
+}
+const SINYAL_LEMAH=`<div class="empty"><div class="big">📶</div><h3>Sinyal sedang lemah</h3><p>Daftar QRIS belum sampai. Kami terus mencoba — begitu tersambung, isinya muncul sendiri.</p><button class="more retry" onclick="location.reload()">Muat ulang</button></div>`;
+
 function listen(){
   if(!LIVE) return;
   if(unsub) unsub();
+  serverEmpty=false;
   /* Publik HANYA boleh minta approved — ini juga dipaksa oleh Rules.
      Query pending akan ditolak server kalau bukan admin. */
   const q = isAdmin
     ? db.collection("qris").orderBy("uploadedAt","desc")
     : db.collection("qris").where("status","==","approved").orderBy("uploadedAt","desc");
-  const paint = () => { loaded=true; clearTimeout(fallback); fillFilters(); tabs(); render() };
-  /* "Wadah kosong" HANYA boleh muncul lewat pengaman ini. Sengaja panjang (7 dtk)
-     supaya di koneksi lambat (in-app browser Instagram sering ~2-3 dtk) data
-     selalu keburu datang lebih dulu → empty-state tak pernah berkedip. Kalau
-     setelah 7 dtk benar-benar belum ada data, berarti wadah memang kosong. */
+  const paint = () => {
+    loaded=true; clearTimeout(fallback); fillFilters(); tabs(); render();
+    /* Counter kunjungan baru dikirim SETELAH daftar tampil, supaya tidak
+       berebut sinyal dengan data yang paling ditunggu pengunjung. */
+    if(!sudahCatat){ sudahCatat=true; setTimeout(catatKunjungan,1500) }
+  };
+  /* Kalau 7 dtk belum ada data, berhenti menampilkan skeleton. Yang tampil
+     lalu ditentukan render(): "Wadah kosong" HANYA bila server sudah
+     memastikan hasilnya kosong (serverEmpty); selain itu "Sinyal sedang
+     lemah" — sementara listener terus mencoba di belakang layar. */
   const fallback = setTimeout(paint, 7000);
   unsub = q.onSnapshot(snap=>{
     const next = snap.docs.map(d=>({id:d.id,...d.data()}));
@@ -1425,16 +1482,28 @@ function listen(){
        awal, MAUPUN snapshot re-sync long-polling IG yang kerap kosong sesaat —
        DIABAIKAN: items lama dipertahankan (sticky), tampilan tidak berubah,
        jadi TIDAK ADA jalan bagi flash "Wadah kosong" muncul saat data sedang
-       dalam perjalanan. Wadah yang memang kosong ditangani timer fallback. */
-    if(next.length){ items=next; paint(); }
+       dalam perjalanan. */
+    if(next.length){
+      /* Gambar yang sudah sempat dimuat jangan dibuang tiap snapshot baru. */
+      const lama=new Map(items.map(i=>[i.id,i]));
+      next.forEach(n=>{ const o=lama.get(n.id);
+        if(o && n.dataUrl===undefined && o.dataUrl!==undefined){ n.dataUrl=o.dataUrl; n.photoUrl=o.photoUrl; n.photos=o.photos } });
+      items=next; paint();
+      if(!snap.metadata.fromCache) simpanCache();
+    } else if(!snap.metadata.fromCache){
+      serverEmpty=true;
+    }
   }, err=>{
     clearTimeout(fallback); loaded=true;
     console.error(err);
+    /* Sudah ada daftar (dari cache lokal / snapshot sebelumnya)? Biarkan
+       tetap tampil — lebih berguna daripada layar error. */
+    if(items.length){ render(); toast("Sinyal lemah — menampilkan data tersimpan","err"); return }
     $("list").innerHTML="";
     const msg = err.code==="permission-denied" ? "Akses ditolak. Periksa Firestore Rules."
       : err.code==="failed-precondition" ? "Index Firestore belum dibuat. Buka Firebase Console → Firestore → Indexes (composite: status ASC + uploadedAt DESC)."
       : "Periksa koneksi internetmu.";
-    $("empty").innerHTML=`<div class="empty"><div class="big">⚠️</div><h3>Wadah tidak bisa dimuat</h3><p>${msg}</p></div>`;
+    $("empty").innerHTML=`<div class="empty"><div class="big">⚠️</div><h3>Wadah tidak bisa dimuat</h3><p>${msg}</p><button class="more retry" onclick="location.reload()">Muat ulang</button></div>`;
   });
 }
 /* ── Counter pengunjung ──
@@ -1469,7 +1538,7 @@ function catatKunjungan(){
        /visits/{day} di firestore.rules belum di-publish. */
     .catch(err=>console.warn("catat kunjungan gagal:", err.code||err));
 }
-catatKunjungan();
+/* catatKunjungan() dipanggil dari listen() setelah daftar pertama tampil. */
 
 /* Data contoh — HANYA saat Firebase belum dipasang, supaya tampilan bisa dinilai.
    Begitu firebaseConfig diisi, LIVE=true dan blok ini tidak pernah jalan. */
@@ -1513,7 +1582,13 @@ const DEMO = [
   {name:"Kotak Amal Digital Musala Al-Hidayah", category:"masjid", city:"Others", district:"", address:""}
 ].map((d,n)=>({id:"demo"+n, status:"approved", dataUrl:DEMO_QR, uploadedAt:Date.now()-n*31e6, ...d}));
 
-if(LIVE) listen();
+if(LIVE){
+  /* Tampilkan salinan terakhir SEKETIKA (tanpa menunggu sinyal), lalu
+     sambungkan ke Firestore untuk data terbaru. */
+  const c=muatCache();
+  if(c.length){ items=c; loaded=true; fillFilters(); tabs(); render() }
+  listen();
+}
 else setTimeout(()=>{ items=DEMO; fillFilters(); tabs(); render() },400);
 </script>
 </body>
