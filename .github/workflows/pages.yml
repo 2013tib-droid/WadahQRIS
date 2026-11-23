@@ -1,0 +1,44 @@
+# Menerbitkan WadahQRIS ke GitHub Pages (https://2013tib-droid.github.io/WadahQRIS/).
+#
+# Yang terbit HANYA aplikasinya (wadahqris.html → index.html), lewat skrip yang
+# sama dengan predeploy Firebase — jadi pemeriksaan kewarasannya ikut berlaku.
+# CLAUDE.md, backup, prototype/, firestore.rules, dll. TIDAK ikut terpajang.
+#
+# Syarat: Settings → Pages → Source = "GitHub Actions".
+# Jalan otomatis tiap ada push ke main; bisa juga manual dari tab Actions.
+# Situs produksi utama tetap wadahqris.id (Firebase Hosting).
+name: Terbitkan ke GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Siapkan public/index.html
+        run: node scripts/siapkan-public.js
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+      - id: deployment
+        uses: actions/deploy-pages@v4
