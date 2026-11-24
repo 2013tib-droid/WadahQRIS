@@ -24,11 +24,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  # Dua job terpisah (pola resmi GitHub Pages). Dulu satu job: deploy-pages
+  # mencari artefak sesaat setelah diunggah dan kadang belum terdaftar di API
+  # → "No artifacts named github-pages were found" (terjadi 24 Nov 2026).
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -40,5 +40,15 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: public
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Tunggu artefak terdaftar
+        run: sleep 10
       - id: deployment
         uses: actions/deploy-pages@v4
