@@ -56,8 +56,8 @@ header{position:sticky;top:0;z-index:40;background:rgba(247,243,234,.94);backdro
 /* Pengantar ringkas: judul + subjudul + cari + filter */
 .intro{padding:22px 0 14px;border-bottom:1px solid var(--line);margin-bottom:14px}
 .intro h1{font-size:clamp(23px,6vw,40px);font-weight:800;line-height:1.15;letter-spacing:-.02em;text-align:center;text-wrap:balance}
-.lead{font-size:clamp(14.5px,2.4vw,17px);color:var(--sub);text-align:center;margin:8px 0 16px}
-@media(min-width:720px){.intro{padding:34px 0 18px}.lead{margin:10px 0 22px}}
+.lead{font-size:clamp(13.5px,2.1vw,15.5px);color:var(--sub);text-align:center;line-height:1.55;max-width:900px;margin:8px auto 16px;text-wrap:pretty}
+@media(min-width:720px){.intro{padding:34px 0 18px}.lead{margin:10px auto 22px}}
 
 /* Filter: chip kategori + kota. HP: kota di bawah kategori. Desktop: sebaris. */
 .filters{display:flex;flex-direction:column;gap:10px;margin-top:12px}
@@ -374,7 +374,7 @@ input:focus,textarea:focus,select:focus{outline:none;background-color:var(--card
   <div id="adminPanel"></div>
   <section class="intro" aria-labelledby="heroTitle">
     <h1 id="heroTitle">Cari QRIS masjid, yayasan, dan UMKM</h1>
-    <p class="lead">Temukan QRIS berdasarkan nama atau lokasi.</p>
+    <p class="lead">Setiap wadah kebaikan bermula dari tangan pertama yang mengisinya dengan ikhlas.<br>Yang kamu titipkan hari ini, kelak bisa menjadi jembatan rezeki dan harapan bagi orang yang belum pernah kamu jumpai.</p>
     <div class="search-bar" role="search">
       <svg class="si" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg>
       <input class="search" id="fSearch" type="search" placeholder="Cari nama, kota, atau kecamatan…" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Cari QRIS berdasarkan nama, kota, atau kecamatan">
